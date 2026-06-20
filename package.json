@@ -6,12 +6,12 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build -w @gitship/shared && npm run build -w @gitship/core && npm run build -w @gitship/agent && npm run build -w @gitship/cli",
+    "build": "npm run build -w gitship-shared && npm run build -w gitship-core && npm run build -w gitship-agent && npm run build -w gitship-cli",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
     "audit": "npm audit --workspaces",
-    "publish": "npm run build && npm publish --workspaces --access public",
-    "publish-packages": "npm run build && npm publish --workspaces --access public"
+    "publish": "npm run build && npm publish --workspaces",
+    "publish-packages": "npm run build && npm publish --workspaces"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.9",
