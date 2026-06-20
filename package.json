@@ -10,6 +10,7 @@
     "test": "vitest run",
     "coverage": "vitest run --coverage",
     "audit": "npm audit --workspaces",
+    "change": "npm version --workspaces --no-git-tag-version",
     "publish": "npm run build && npm publish --workspaces",
     "publish-packages": "npm run build && npm publish --workspaces"
   },

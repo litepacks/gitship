@@ -919,7 +919,7 @@ const projectsCmd = program
     try {
       const projects = getProjects();
       if (projects.length === 0) {
-        console.log(chalk.yellow("No projects found in the database. Run 'deploykit init' to create one."));
+        console.log(chalk.yellow("No projects found in the database."));
         return;
       }
 

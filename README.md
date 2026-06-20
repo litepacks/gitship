@@ -124,6 +124,12 @@ To run security audits across all workspace packages and their dependencies:
 npm run audit
 ```
 
+### Version Bumping
+To bump the version of all workspace packages at once (e.g. `patch`, `minor`, `major`):
+```bash
+npm run change patch
+```
+
 ### Publishing Workspace Packages
 To build all packages and publish them to the public npm registry:
 ```bash
