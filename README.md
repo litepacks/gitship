@@ -25,6 +25,23 @@ A `.nvmrc` file is provided in the project root. To get started:
    nvm alias default 22
    ```
 
+### ⚙️ Target Project Node.js Version in `gitship.yml`
+
+You can also control the Node.js version used for executing deployment tasks per-project. Under the `deploy` block of your `gitship.yml` file, specify the optional `node_version` field:
+
+```yaml
+deploy:
+  node_version: "20.11.0" # Target specific Node.js version for deployment commands
+  install: npm ci
+  build: npm run build
+  restart: pm2 restart all
+```
+
+When `node_version` is specified:
+* **NVM Environment Wrapper**: GitShip wraps `install`, `build`, and `restart` scripts to execute them under the specified Node.js version.
+* **On-the-Fly Installation**: If the specified version is not yet installed on the deployment runner (local machine or remote VPS target), GitShip runs `nvm install <version>` automatically before execution.
+* **NVM Discovery**: GitShip detects NVM in common environment installations (including standard paths under `$HOME/.nvm`, `/usr/local/nvm`, or Homebrew directories).
+
 ---
 
 ## 🏛 General Architecture
