@@ -324,7 +324,31 @@ program
         return;
       }
 
-      const repoChoices = repos.map((r) => ({
+      let filteredRepos = repos;
+      while (true) {
+        const { searchQuery } = await inquirer.prompt([
+          {
+            type: "input",
+            name: "searchQuery",
+            message: "Filter repositories by name (press Enter to list all):",
+          },
+        ]);
+
+        const query = searchQuery.trim().toLowerCase();
+        if (query) {
+          filteredRepos = repos.filter((r) => r.fullName.toLowerCase().includes(query));
+          if (filteredRepos.length === 0) {
+            console.log(chalk.yellow(`No repositories matched "${searchQuery}". Please try again.`));
+            continue;
+          }
+          console.log(chalk.gray(`Found ${filteredRepos.length} matching repositories.`));
+        } else {
+          filteredRepos = repos;
+        }
+        break;
+      }
+
+      const repoChoices = filteredRepos.map((r) => ({
         name: r.fullName,
         value: r,
       }));
@@ -596,7 +620,8 @@ program
         } as any);
       }
 
-      const webhookUrl = `${agentUrl.replace(/\/$/, "")}/webhook/github`;
+      const projectId = oldProject?.id || `proj_${nanoid(8)}`;
+      const webhookUrl = `${agentUrl.replace(/\/$/, "")}/webhook/github/${projectId}`;
 
       // Generate or reuse webhook secret
       const webhookSecret = oldProject?.webhook_secret || `sec_${nanoid(15)}`;
@@ -635,7 +660,7 @@ program
 
       // Add to database
       const projectRecord: Project = {
-        id: oldProject?.id || `proj_${nanoid(8)}`,
+        id: projectId,
         name: newConfig.project,
         owner: newConfig.repository.owner,
         repo: newConfig.repository.repo,
@@ -1274,6 +1299,23 @@ program
 
     } catch (err: any) {
       console.error(chalk.red(`Error: ${err.message}`));
+      process.exit(1);
+    }
+  });
+
+program
+  .command("agent")
+  .description("Start the GitShip webhook server agent daemon to listen to incoming webhooks")
+  .option("-p, --port <port>", "Port to listen on (default: 3000)")
+  .action(async (options) => {
+    try {
+      if (options.port) {
+        process.env.PORT = options.port;
+      }
+      console.log(chalk.cyan("Starting GitShip Server Agent..."));
+      await import("gitship-agent");
+    } catch (err: any) {
+      console.error(chalk.red(`Error starting agent: ${err.message}`));
       process.exit(1);
     }
   });

@@ -1,6 +1,6 @@
 {
   "name": "gitship-cli",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "type": "module",
   "bin": {
     "gitship": "dist/bin.js"
@@ -15,6 +15,7 @@
   "dependencies": {
     "gitship-core": "*",
     "gitship-shared": "*",
+    "gitship-agent": "*",
     "chalk": "^5.3.0",
     "commander": "^12.1.0",
     "inquirer": "^9.2.22",

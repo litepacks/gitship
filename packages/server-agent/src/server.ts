@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express";
 import crypto from "crypto";
 import {
+  getProject,
   getProjects,
   enqueueDeployment,
   isWebhookDeliveryProcessed,
@@ -35,13 +36,22 @@ function verifyGitHubSignature(
   }
 }
 
-app.post("/webhook/github", async (req: Request, res: Response): Promise<void> => {
+app.post("/webhook/github/:projectId", async (req: Request, res: Response): Promise<void> => {
+  const { projectId } = req.params;
   const event = req.headers["x-github-event"];
   const signature = req.headers["x-hub-signature-256"] as string;
   const deliveryId = req.headers["x-github-delivery"] as string;
 
   if (!event || event !== "push") {
     res.status(200).send("Ignored: Not a push event");
+    return;
+  }
+
+  // Find matching project in the database
+  const project = getProject(projectId);
+  if (!project) {
+    console.log(`[Webhook] No project found in database for ID: ${projectId}`);
+    res.status(404).send(`Error: Project not found for ID ${projectId}`);
     return;
   }
 
@@ -61,55 +71,34 @@ app.post("/webhook/github", async (req: Request, res: Response): Promise<void> =
     return;
   }
 
-  const owner = payload.repository.owner.login;
-  const repo = payload.repository.name;
   const branch = payload.ref.replace("refs/heads/", "");
-
-  // Find matching projects in the database
-  const projects = getProjects().filter(
-    (p) =>
-      p.owner.toLowerCase() === owner.toLowerCase() &&
-      p.repo.toLowerCase() === repo.toLowerCase() &&
-      p.branch.toLowerCase() === branch.toLowerCase()
-  );
-
-  if (projects.length === 0) {
-    console.log(`[Webhook] No matching active project found for ${owner}/${repo} branch ${branch}`);
-    res.status(200).send(`Ignored: No active project matching ${owner}/${repo}:${branch}`);
+  if (project.branch.toLowerCase() !== branch.toLowerCase()) {
+    console.log(`[Webhook] Branch mismatch for project ${project.name}. Expected: ${project.branch}, Received: ${branch}`);
+    res.status(200).send(`Ignored: Branch mismatch. Project branch: ${project.branch}, Payload branch: ${branch}`);
     return;
   }
 
   const rawBody = (req as any).rawBody || Buffer.from(JSON.stringify(req.body));
 
-  // Process all matching projects (usually just 1, but we loop for safety)
-  let authorizedCount = 0;
-  for (const project of projects) {
-    if (!verifyGitHubSignature(rawBody, signature, project.webhook_secret)) {
-      console.warn(`[Webhook] Signature verification failed for project: ${project.name}`);
-      continue;
-    }
-
-    authorizedCount++;
-
-    const commitSha = payload.after !== "0000000000000000000000000000000000000000" ? payload.after : null;
-    const commitMessage = payload.head_commit?.message || "Webhook trigger";
-    const author = payload.head_commit?.author?.username || payload.pusher?.name || "github";
-
-    console.log(`[Webhook] Enqueuing deployment for project ${project.name} (commit: ${commitSha})`);
-    
-    await enqueueDeployment(
-      project.id,
-      branch,
-      commitSha,
-      commitMessage,
-      author
-    );
-  }
-
-  if (authorizedCount === 0) {
+  if (!verifyGitHubSignature(rawBody, signature, project.webhook_secret)) {
+    console.warn(`[Webhook] Signature verification failed for project: ${project.name}`);
     res.status(401).send("Unauthorized: Signature verification failed");
     return;
   }
+
+  const commitSha = payload.after !== "0000000000000000000000000000000000000000" ? payload.after : null;
+  const commitMessage = payload.head_commit?.message || "Webhook trigger";
+  const author = payload.head_commit?.author?.username || payload.pusher?.name || "github";
+
+  console.log(`[Webhook] Enqueuing deployment for project ${project.name} (commit: ${commitSha})`);
+  
+  await enqueueDeployment(
+    project.id,
+    branch,
+    commitSha,
+    commitMessage,
+    author
+  );
 
   res.status(202).send("Accepted: Deployment enqueued");
 });

@@ -134,8 +134,36 @@ When running `gitship auth github` to authenticate the CLI:
   - **Option B (SSH Port Forwarding)**: If you still want to use Browser OAuth, you can connect to your VPS with SSH port forwarding:
     ```bash
     ssh -L 4567:localhost:4567 user@your-vps-ip
-    ```
     Then, running `gitship auth github` on the VPS will forward the authentication code back to your local browser successfully.
+
+### 3. Running the Server Agent in the Background (PM2)
+To keep the webhook Server Agent running continuously in the background on your VPS, you can use **PM2**:
+
+- **Option A: Running via the global CLI command**
+  If you have installed the CLI globally, you can start the agent directly (default port is 3000):
+  ```bash
+  pm2 start "gitship agent" --name "gitship-agent"
+
+  # Or running on a custom port (e.g. 8080)
+  pm2 start "gitship agent --port 8080" --name "gitship-agent"
+  ```
+
+- **Option B: Running the package directly**
+  Alternatively, you can run the agent node process directly from the package directory:
+  ```bash
+  pm2 start packages/server-agent/dist/server.js --name "gitship-agent"
+
+  # Or running on a custom port (e.g. 8080)
+  PORT=8080 pm2 start packages/server-agent/dist/server.js --name "gitship-agent"
+  ```
+
+To inspect logs, monitor status, or configure PM2 to start on system boot:
+```bash
+pm2 logs gitship-agent
+pm2 status
+pm2 startup
+pm2 save
+```
 
 ---
 
