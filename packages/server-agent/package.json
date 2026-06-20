@@ -1,8 +1,11 @@
 {
   "name": "gitship-agent",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "type": "module",
   "main": "./dist/server.js",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "start": "node ./dist/server.js",
