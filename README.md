@@ -113,3 +113,19 @@ npm run coverage
 ```
 
 Currently, tests achieve **100% statement and line coverage** on configuration paths and helper systems, and test the major database interactions.
+
+---
+
+## 🚀 Monorepo Management & Maintenance
+
+### Auditing Dependencies
+To run security audits across all workspace packages and their dependencies:
+```bash
+npm run audit
+```
+
+### Publishing Workspace Packages
+To build all packages and publish them to the public npm registry:
+```bash
+npm run publish
+```

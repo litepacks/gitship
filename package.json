@@ -8,7 +8,10 @@
   "scripts": {
     "build": "npm run build -w @deploykit/shared && npm run build -w @deploykit/core && npm run build -w @deploykit/agent && npm run build -w @deploykit/cli",
     "test": "vitest run",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "audit": "npm audit --workspaces",
+    "publish": "npm run build && npm publish --workspaces --access public",
+    "publish-packages": "npm run build && npm publish --workspaces --access public"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.9",
