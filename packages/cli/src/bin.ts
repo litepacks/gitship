@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const [nodeMajor] = process.versions.node.split(".").map(Number);
 if (nodeMajor < 20) {
-  console.error(`\x1b[31mError: DeployKit requires Node.js version 20 or higher. Current version: v${process.versions.node}\x1b[0m`);
+  console.error(`\x1b[31mError: GitShip requires Node.js version 20 or higher. Current version: v${process.versions.node}\x1b[0m`);
   process.exit(1);
 }
 
@@ -37,11 +37,11 @@ import {
   cancelDeployment,
   CONFIG_PATH,
 } from "gitship-core";
-import { validateToken, listRepositories, listBranches, setupWebhook, openBrowser } from "gitship-core";
+import { validateToken, listRepositories, listBranches, setupWebhook, openBrowser, getOctokit } from "gitship-core";
 
 const program = new Command();
 program
-  .name("deploykit")
+  .name("gitship")
   .description("Lightweight GitHub-driven deployment toolkit")
   .version("1.0.0");
 
@@ -117,7 +117,7 @@ function startCallbackServer(clientId: string, clientSecret: string, port: numbe
               <body style="font-family: sans-serif; text-align: center; padding-top: 50px; background-color: #f6f8fa;">
                 <div style="display: inline-block; padding: 30px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
                   <h1 style="color: #2da44e;">Authentication Successful!</h1>
-                  <p style="color: #57606a;">You have successfully authenticated with DeployKit.</p>
+                  <p style="color: #57606a;">You have successfully authenticated with GitShip.</p>
                   <p style="color: #57606a;">You can close this tab and return to your terminal.</p>
                 </div>
               </body>
@@ -171,7 +171,7 @@ program
       ]);
 
       if (method === "browser") {
-        console.log(chalk.cyan("\nDeployKit self-hosted Browser OAuth login flow."));
+        console.log(chalk.cyan("\nGitShip self-hosted Browser OAuth login flow."));
 
         let redirectHost = "localhost";
         const isSSH = !!(process.env.SSH_CLIENT || process.env.SSH_CONNECTION || process.env.SSH_TTY);
@@ -299,12 +299,12 @@ program
 // 2. PROJECT INIT
 program
   .command("init")
-  .description("Initialize a new DeployKit project in the current directory")
+  .description("Initialize a new GitShip project in the current directory")
   .action(async () => {
     try {
       const auth = readAuthConfig();
       if (!auth.github_token) {
-        console.error(chalk.red("Error: Not authenticated. Please run 'deploykit auth github' first."));
+        console.error(chalk.red("Error: Not authenticated. Please run 'gitship auth github' first."));
         return;
       }
 
@@ -488,12 +488,12 @@ program
       // Write yaml file
       const { stringifyProjectConfig } = await import("gitship-shared");
       const yamlStr = stringifyProjectConfig(config);
-      const configFilePath = path.join(process.cwd(), "deploykit.yml");
+      const configFilePath = path.join(process.cwd(), "gitship.yml");
       
       fs.writeFileSync(configFilePath, yamlStr, "utf-8");
-      console.log(chalk.green(`\nSuccess: Generated ${chalk.bold("deploykit.yml")} at ${configFilePath}\n`));
+      console.log(chalk.green(`\nSuccess: Generated ${chalk.bold("gitship.yml")} at ${configFilePath}\n`));
       console.log(chalk.gray(yamlStr));
-      console.log(`Run ${chalk.bold("deploykit sync")} to configure the webhooks and link this project.`);
+      console.log(`Run ${chalk.bold("gitship sync")} to configure the webhooks and link this project.`);
     } catch (err: any) {
       console.error(chalk.red(`Error during initialization: ${err.message}`));
     }
@@ -502,12 +502,12 @@ program
 // 3. PROJECT SYNC
 program
   .command("sync")
-  .description("Sync deploykit.yml config with database and GitHub webhook")
+  .description("Sync gitship.yml config with database and GitHub webhook")
   .action(async () => {
     try {
-      const configPath = path.join(process.cwd(), "deploykit.yml");
+      const configPath = path.join(process.cwd(), "gitship.yml");
       if (!fs.existsSync(configPath)) {
-        console.error(chalk.red("Error: deploykit.yml not found. Please run 'deploykit init' to generate it."));
+        console.error(chalk.red("Error: gitship.yml not found. Please run 'gitship init' to generate it."));
         return;
       }
 
@@ -516,7 +516,7 @@ program
       try {
         newConfig = parseProjectConfig(rawYaml);
       } catch (err: any) {
-        console.error(chalk.red("Error: deploykit.yml validation failed."));
+        console.error(chalk.red("Error: gitship.yml validation failed."));
         console.error(err.message || err);
         return;
       }
@@ -566,7 +566,7 @@ program
       // We need agent URL to construct webhook endpoint on GitHub
       const auth = readAuthConfig();
       if (!auth.github_token) {
-        console.error(chalk.red("Error: Not authenticated. Please run 'deploykit auth github' first."));
+        console.error(chalk.red("Error: Not authenticated. Please run 'gitship auth github' first."));
         return;
       }
 
@@ -885,7 +885,7 @@ program
         );
         spinner.succeed(`Rollback enqueued successfully!`);
         console.log(`New Deployment ID: ${chalk.bold(rollbackDep.id)}`);
-        console.log(`Run ${chalk.bold(`deploykit logs ${rollbackDep.id} -f`)} to watch execution.`);
+        console.log(`Run ${chalk.bold(`gitship logs ${rollbackDep.id} -f`)} to watch execution.`);
       } catch (err: any) {
         spinner.fail(`Failed to enqueue rollback: ${err.message || err}`);
       }
@@ -998,7 +998,7 @@ program
     try {
       const auth = readAuthConfig();
       if (!auth.github_token) {
-        console.error(chalk.red("Error: Not authenticated. Please run 'deploykit auth github' first."));
+        console.error(chalk.red("Error: Not authenticated. Please run 'gitship auth github' first."));
         process.exit(1);
       }
 
@@ -1045,7 +1045,7 @@ const projectCmd = program.command("project").description("Manage individual pro
 
 projectCmd
   .command("add <file>")
-  .description("Manually register a project from a deploykit.yml config file")
+  .description("Manually register a project from a gitship.yml config file")
   .action((file) => {
     try {
       const filePath = path.resolve(file);
@@ -1159,7 +1159,7 @@ projectCmd
         console.log(`HMAC Secret:     ${webhook.secret}`);
         console.log(`Status:          ${webhook.active ? chalk.green("active") : chalk.red("inactive")}`);
       } else {
-        console.log(chalk.yellow("No webhook settings found in database. Run 'deploykit sync' to set it up."));
+        console.log(chalk.yellow("No webhook settings found in database. Run 'gitship sync' to set it up."));
       }
 
       const projectRuns = getDeployments(project.id, 5);
@@ -1175,6 +1175,106 @@ projectCmd
       console.log();
     } catch (err: any) {
       console.error(chalk.red(`Error inspecting project: ${err.message}`));
+    }
+  });
+
+program
+  .command("check")
+  .description("Check if the local config, database registration, and remote GitHub webhook are active and valid")
+  .action(async () => {
+    try {
+      const configPath = path.join(process.cwd(), "gitship.yml");
+      if (!fs.existsSync(configPath)) {
+        console.log(`[${chalk.red("✗")}] Config File: ${chalk.bold("gitship.yml")} not found in the current directory. Run 'gitship init' to generate it.`);
+        process.exit(1);
+      }
+
+      // 1. Validate Config File
+      let config: ProjectConfig;
+      try {
+        const rawYaml = fs.readFileSync(configPath, "utf-8");
+        config = parseProjectConfig(rawYaml);
+        console.log(`[${chalk.green("✓")}] Config File: Valid ${chalk.bold("gitship.yml")} configuration.`);
+      } catch (err: any) {
+        console.log(`[${chalk.red("✗")}] Config File: Invalid config file format: ${err.message}`);
+        process.exit(1);
+      }
+
+      // 2. Check Database Registration
+      const project = getProject(config.project);
+      if (!project) {
+        console.log(`[${chalk.red("✗")}] Database Registration: Project is not registered in the database. Run 'gitship sync' to register.`);
+      } else {
+        console.log(`[${chalk.green("✓")}] Database Registration: OK (Registered locally with ID: ${project.id}).`);
+      }
+
+      // 3. Check Authentication
+      const auth = readAuthConfig();
+      if (!auth.github_token) {
+        console.log(`[${chalk.red("✗")}] GitHub Authentication: Not authenticated. Run 'gitship auth github' first.`);
+        process.exit(1);
+      }
+
+      let username = "";
+      try {
+        const authData = await validateToken(auth.github_token);
+        username = authData.username;
+        console.log(`[${chalk.green("✓")}] GitHub Authentication: OK (Authenticated as @${username}).`);
+      } catch (err: any) {
+        console.log(`[${chalk.red("✗")}] GitHub Authentication: Invalid token: ${err.message}`);
+        process.exit(1);
+      }
+
+      // 4. Check GitHub Repository Accessibility
+      const octokit = getOctokit(auth.github_token);
+      const owner = config.repository.owner;
+      const repo = config.repository.repo;
+      try {
+        await octokit.rest.repos.get({ owner, repo });
+        console.log(`[${chalk.green("✓")}] GitHub Repository: Accessible (${owner}/${repo}).`);
+      } catch (err: any) {
+        console.log(`[${chalk.red("✗")}] GitHub Repository: Cannot access repository: ${err.message}`);
+        process.exit(1);
+      }
+
+      // 5. Check Remote Webhook
+      if (!project) {
+        console.log(`[${chalk.red("✗")}] GitHub Webhook: Cannot check webhook because the project is not registered locally.`);
+        return;
+      }
+
+      const webhook = getWebhookByProjectId(project.id);
+      if (!webhook) {
+        console.log(`[${chalk.red("✗")}] GitHub Webhook: No webhook registered in local database. Run 'gitship sync'.`);
+        return;
+      }
+
+      if (!webhook.github_webhook_id) {
+        console.log(`[${chalk.red("✗")}] GitHub Webhook: No remote webhook ID recorded. Run 'gitship sync'.`);
+        return;
+      }
+
+      try {
+        const { data: hook } = await octokit.rest.repos.getWebhook({
+          owner,
+          repo,
+          hook_id: webhook.github_webhook_id,
+        });
+
+        if (hook.active && hook.config.url === webhook.url) {
+          console.log(`[${chalk.green("✓")}] GitHub Webhook: OK (Webhook is active and correctly pointing to ${webhook.url}).`);
+        } else if (!hook.active) {
+          console.log(`[${chalk.red("✗")}] GitHub Webhook: Webhook is inactive on GitHub.`);
+        } else {
+          console.log(`[${chalk.red("✗")}] GitHub Webhook: URL Mismatch (GitHub: ${hook.config.url}, Local DB: ${webhook.url}). Run 'gitship sync'.`);
+        }
+      } catch (err: any) {
+        console.log(`[${chalk.red("✗")}] GitHub Webhook: Cannot fetch webhook from GitHub: ${err.message}. Run 'gitship sync' to fix.`);
+      }
+
+    } catch (err: any) {
+      console.error(chalk.red(`Error: ${err.message}`));
+      process.exit(1);
     }
   });
 

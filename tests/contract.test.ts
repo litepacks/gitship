@@ -6,7 +6,7 @@ describe("Interface and Schema Contract Verification", () => {
   
   // Contract 1: GitHub Webhook Push Payload format
   it("should match the expected contract of a GitHub Webhook Push Payload", () => {
-    // Official GitHub Push Payload sample subset required by DeployKit Agent
+    // Official GitHub Push Payload sample subset required by GitShip Agent
     const githubPushPayload = {
       ref: "refs/heads/production",
       after: "87c8a149c95b6c8ba883ef59dc6c8f6e80b2a4dd",

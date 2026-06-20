@@ -5,8 +5,9 @@ export default defineConfig({
     globals: true,
     environment: "node",
     include: ["tests/**/*.test.ts"],
+    fileParallelism: false,
     env: {
-      DEPLOYKIT_DIR: "./.test-deploykit"
+      GITSHIP_DIR: "./.test-gitship"
     }
   },
 });

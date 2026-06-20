@@ -32,7 +32,7 @@ export async function runDeploymentPipeline(
   const token = auth.github_token;
 
   if (!token) {
-    const errorMsg = "Error: GitHub authentication token is missing. Please run 'deploykit auth github'.\n";
+    const errorMsg = "Error: GitHub authentication token is missing. Please run 'gitship auth github'.\n";
     appendDeploymentLog(deployment.id, errorMsg);
     updateDeploymentStatus(deployment.id, "FAILED", {
       finished_at: Date.now(),

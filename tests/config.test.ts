@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { parseProjectConfig, stringifyProjectConfig } from "../packages/shared/src/config.schema.js";
 
 describe("Project Config Validation", () => {
-  it("should validate a correct deploykit.yml format", () => {
+  it("should validate a correct gitship.yml format", () => {
     const yamlContent = `
 project: test-project
 repository:

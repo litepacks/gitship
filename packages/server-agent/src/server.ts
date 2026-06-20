@@ -119,5 +119,5 @@ app.get("/health", (_req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`DeployKit Server Agent listening on port ${PORT}`);
+  console.log(`GitShip Server Agent listening on port ${PORT}`);
 });

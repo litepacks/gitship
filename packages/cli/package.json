@@ -1,9 +1,9 @@
 {
   "name": "gitship-cli",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "type": "module",
   "bin": {
-    "deploykit": "dist/bin.js"
+    "gitship": "dist/bin.js"
   },
   "files": [
     "dist"

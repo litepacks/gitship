@@ -5,27 +5,27 @@ import {
   readAuthConfig,
   writeAuthConfig,
   CONFIG_PATH,
-  DEPLOYKIT_DIR,
+  GITSHIP_DIR,
   BUILDS_DIR,
 } from "../packages/core/src/paths.js";
 
 describe("Paths and Storage Utility", () => {
   beforeAll(() => {
     // Ensure clean state before tests
-    if (fs.existsSync(DEPLOYKIT_DIR)) {
-      fs.rmSync(DEPLOYKIT_DIR, { recursive: true, force: true });
+    if (fs.existsSync(GITSHIP_DIR)) {
+      fs.rmSync(GITSHIP_DIR, { recursive: true, force: true });
     }
   });
 
   afterAll(() => {
-    if (fs.existsSync(DEPLOYKIT_DIR)) {
-      fs.rmSync(DEPLOYKIT_DIR, { recursive: true, force: true });
+    if (fs.existsSync(GITSHIP_DIR)) {
+      fs.rmSync(GITSHIP_DIR, { recursive: true, force: true });
     }
   });
 
   it("should create configuration directories", () => {
     ensureDirsExist();
-    expect(fs.existsSync(DEPLOYKIT_DIR)).toBe(true);
+    expect(fs.existsSync(GITSHIP_DIR)).toBe(true);
     expect(fs.existsSync(BUILDS_DIR)).toBe(true);
   });
 

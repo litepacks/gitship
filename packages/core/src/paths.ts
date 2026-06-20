@@ -2,14 +2,14 @@ import path from "path";
 import os from "os";
 import fs from "fs";
 
-export const DEPLOYKIT_DIR = process.env.DEPLOYKIT_DIR || path.join(os.homedir(), ".deploykit");
-export const CONFIG_PATH = path.join(DEPLOYKIT_DIR, "config.json");
-export const DB_PATH = path.join(DEPLOYKIT_DIR, "deploykit.json");
-export const BUILDS_DIR = path.join(DEPLOYKIT_DIR, "builds");
+export const GITSHIP_DIR = process.env.GITSHIP_DIR || path.join(os.homedir(), ".gitship");
+export const CONFIG_PATH = path.join(GITSHIP_DIR, "config.json");
+export const DB_PATH = path.join(GITSHIP_DIR, "gitship.json");
+export const BUILDS_DIR = path.join(GITSHIP_DIR, "builds");
 
 export function ensureDirsExist() {
-  if (!fs.existsSync(DEPLOYKIT_DIR)) {
-    fs.mkdirSync(DEPLOYKIT_DIR, { recursive: true });
+  if (!fs.existsSync(GITSHIP_DIR)) {
+    fs.mkdirSync(GITSHIP_DIR, { recursive: true });
   }
   if (!fs.existsSync(BUILDS_DIR)) {
     fs.mkdirSync(BUILDS_DIR, { recursive: true });

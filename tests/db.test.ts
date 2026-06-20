@@ -22,14 +22,14 @@ import {
   isWebhookDeliveryProcessed,
   recordWebhookDelivery,
 } from "../packages/core/src/db.js";
-import { DEPLOYKIT_DIR } from "../packages/core/src/paths.js";
+import { GITSHIP_DIR } from "../packages/core/src/paths.js";
 import { Project, Deployment, Webhook, DeploymentStep } from "gitship-shared";
 
 describe("SQLite Database Operations", () => {
   afterAll(() => {
     // Cleanup test dir
-    if (fs.existsSync(DEPLOYKIT_DIR)) {
-      fs.rmSync(DEPLOYKIT_DIR, { recursive: true, force: true });
+    if (fs.existsSync(GITSHIP_DIR)) {
+      fs.rmSync(GITSHIP_DIR, { recursive: true, force: true });
     }
   });
 
