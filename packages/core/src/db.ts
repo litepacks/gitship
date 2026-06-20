@@ -8,8 +8,16 @@ import {
   DeploymentStep,
   DeploymentStatus,
   StepStatus,
-  ProjectStats,
 } from "gitship-shared";
+
+export interface ProjectStats {
+  totalDeployments: number;
+  successRate: number;
+  avgDeployTimeMs: number;
+  avgBuildTimeMs: number;
+  slowestDeployMs: number;
+  fastestDeployMs: number;
+}
 
 interface JsonDbSchema {
   projects: Project[];
@@ -195,19 +203,16 @@ export function createDeploymentStep(step: DeploymentStep): void {
 }
 
 export function updateDeploymentStep(
-  deploymentId: string,
-  stepName: string,
-  status: StepStatus,
-  extraFields?: Partial<Omit<DeploymentStep, "deployment_id" | "step_name" | "status">>
+  id: string,
+  updates: Partial<Omit<DeploymentStep, "id">>
 ): void {
   const data = readDb();
-  const idx = data.deployment_steps.findIndex(ds => ds.deployment_id === deploymentId && ds.step_name === stepName);
+  const idx = data.deployment_steps.findIndex(ds => ds.id === id);
   if (idx !== -1) {
     data.deployment_steps[idx] = {
       ...data.deployment_steps[idx],
-      status,
-      ...extraFields,
-    };
+      ...updates,
+    } as DeploymentStep;
     writeDb(data);
   }
 }

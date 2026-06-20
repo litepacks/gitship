@@ -22,7 +22,6 @@ import http from "http";
 import {
   readAuthConfig,
   writeAuthConfig,
-  getDb,
   addProject,
   getProject,
   getProjects,
