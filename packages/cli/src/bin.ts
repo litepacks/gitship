@@ -991,6 +991,55 @@ const projectsCmd = program
     }
   });
 
+program
+  .command("repos")
+  .description("List all repositories from the connected GitHub account")
+  .action(async () => {
+    try {
+      const auth = readAuthConfig();
+      if (!auth.github_token) {
+        console.error(chalk.red("Error: Not authenticated. Please run 'deploykit auth github' first."));
+        process.exit(1);
+      }
+
+      const spinner = ora("Loading repositories from GitHub...").start();
+      let repos;
+      try {
+        repos = await listRepositories(auth.github_token);
+        spinner.succeed(`Loaded ${repos.length} repositories.`);
+      } catch (err: any) {
+        spinner.fail(`Failed to load repositories: ${err.message}`);
+        process.exit(1);
+      }
+
+      if (repos.length === 0) {
+        console.log(chalk.yellow("No repositories found in your GitHub account."));
+        return;
+      }
+
+      console.log(chalk.bold("\nGitHub Repositories:"));
+      console.log(
+        chalk.gray("--------------------------------------------------------------------------------")
+      );
+      console.log(
+        `${chalk.bold("Full Name").padEnd(45)} ${chalk.bold("Clone URL")}`
+      );
+      console.log(
+        chalk.gray("--------------------------------------------------------------------------------")
+      );
+
+      for (const repo of repos) {
+        console.log(
+          `${repo.fullName.padEnd(45)} ${repo.url}`
+        );
+      }
+      console.log();
+    } catch (err: any) {
+      console.error(chalk.red(`Error: ${err.message}`));
+      process.exit(1);
+    }
+  });
+
 // project subcommand container for add/remove/inspect
 const projectCmd = program.command("project").description("Manage individual projects");
 
