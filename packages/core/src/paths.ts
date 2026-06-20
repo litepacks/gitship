@@ -16,7 +16,7 @@ export function ensureDirsExist() {
   }
 }
 
-export function readAuthConfig(): { github_token?: string; github_username?: string } {
+export function readAuthConfig(): { github_token?: string; github_username?: string; agent_url?: string } {
   ensureDirsExist();
   if (!fs.existsSync(CONFIG_PATH)) {
     return {};
@@ -29,7 +29,7 @@ export function readAuthConfig(): { github_token?: string; github_username?: str
   }
 }
 
-export function writeAuthConfig(config: { github_token: string; github_username?: string }) {
+export function writeAuthConfig(config: { github_token: string; github_username?: string; agent_url?: string }) {
   ensureDirsExist();
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), "utf-8");
 }

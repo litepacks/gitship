@@ -82,7 +82,7 @@ export async function runDeploymentPipeline(
   let status: DeploymentStatus = "SUCCESS";
 
   try {
-    // Step 1: Clone or Pull
+    // Step 1: Clone or Pull — ensure working directory matches the exact target commit
     const cloneSuccess = await runStep(
       deployment.id,
       "clone",
@@ -111,7 +111,14 @@ export async function runDeploymentPipeline(
             log(`Checking out target: ${checkoutTarget}...\n`);
             await execLocal(deployment.id, "git", ["checkout", "-B", deployment.branch], projectPath, undefined, log);
             await execLocal(deployment.id, "git", ["reset", "--hard", checkoutTarget], projectPath, undefined, log);
+            log(`Cleaning untracked files and build artifacts...\n`);
+            await execLocal(deployment.id, "git", ["clean", "-fdx"], projectPath, undefined, log);
           }
+
+          // Log the resolved commit SHA so the user knows exactly what was deployed
+          log(`Resolved HEAD: `);
+          await execLocal(deployment.id, "git", ["log", "--oneline", "-1"], projectPath, undefined, log);
+          log(`\n`);
         } else {
           // SSH Target
           const port = project.target_host?.split(":")[1] || "22";
@@ -141,8 +148,13 @@ export async function runDeploymentPipeline(
             
             const checkoutTarget = deployment.commit_sha || `origin/${deployment.branch}`;
             log(`Checking out target on remote server: ${checkoutTarget}...\n`);
-            await execSSH(deployment.id, host, port, `cd ${project.target_path} && git checkout -B ${deployment.branch} && git reset --hard ${checkoutTarget}`, log);
+            await execSSH(deployment.id, host, port, `cd ${project.target_path} && git checkout -B ${deployment.branch} && git reset --hard ${checkoutTarget} && git clean -fdx`, log);
           }
+
+          // Log the resolved commit SHA on remote
+          log(`Resolved HEAD on remote: `);
+          await execSSH(deployment.id, host, port, `cd ${project.target_path} && git log --oneline -1`, log);
+          log(`\n`);
         }
       }
     );

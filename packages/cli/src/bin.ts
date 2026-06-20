@@ -12,6 +12,7 @@ import ora from "ora";
 import fs from "fs";
 import path from "path";
 import { nanoid } from "nanoid";
+import Table from "cli-table3";
 import {
   parseProjectConfig,
   ProjectConfig,
@@ -56,23 +57,57 @@ function formatDuration(ms: number | null): string {
   return `${mins}m${remainingSecs}s`;
 }
 
-// Helper to format status with colors
+// Helper to format status with colors and icons
 function formatStatus(status: string): string {
   switch (status) {
     case "QUEUED":
-      return chalk.yellow("QUEUED");
+      return chalk.yellow("◷ QUEUED");
     case "RUNNING":
-      return chalk.blue.bold("RUNNING");
+      return chalk.blue.bold("● RUNNING");
     case "SUCCESS":
-      return chalk.green("SUCCESS");
+      return chalk.green("✔ SUCCESS");
     case "FAILED":
-      return chalk.red("FAILED");
+      return chalk.red("✖ FAILED");
     case "CANCELLED":
-      return chalk.gray("CANCELLED");
+      return chalk.gray("○ CANCELLED");
     default:
       return status;
   }
 }
+
+// Helper to format relative time
+function timeAgo(timestamp: number): string {
+  const diff = Date.now() - timestamp;
+  const seconds = Math.floor(diff / 1000);
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+// Table style presets
+const TABLE_STYLE = {
+  chars: {
+    'top': '─', 'top-mid': '┬', 'top-left': '┌', 'top-right': '┐',
+    'bottom': '─', 'bottom-mid': '┴', 'bottom-left': '└', 'bottom-right': '┘',
+    'left': '│', 'left-mid': '├', 'mid': '─', 'mid-mid': '┼',
+    'right': '│', 'right-mid': '┤', 'middle': '│',
+  },
+  style: { head: ['cyan'], border: ['gray'] },
+};
+
+const TABLE_STYLE_COMPACT = {
+  chars: {
+    'top': '', 'top-mid': '', 'top-left': '', 'top-right': '',
+    'bottom': '', 'bottom-mid': '', 'bottom-left': '', 'bottom-right': '',
+    'left': ' ', 'left-mid': '', 'mid': '', 'mid-mid': '',
+    'right': '', 'right-mid': '', 'middle': '  ',
+  },
+  style: { head: ['cyan', 'bold'], border: [], 'padding-left': 0, 'padding-right': 0 },
+};
 
 function startCallbackServer(clientId: string, clientSecret: string, port: number): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -718,33 +753,30 @@ program
         return;
       }
 
-      console.log(chalk.bold("\nLast Deployments:"));
-      console.log(
-        chalk.gray("--------------------------------------------------------------------------------")
-      );
-      console.log(
-        `${chalk.bold("ID").padEnd(14)} ${chalk.bold("Project").padEnd(15)} ${chalk.bold(
-          "Branch"
-        ).padEnd(10)} ${chalk.bold("Commit").padEnd(8)} ${chalk.bold("Status").padEnd(20)} ${chalk.bold(
-          "Duration"
-        )}`
-      );
-      console.log(
-        chalk.gray("--------------------------------------------------------------------------------")
-      );
+      console.log(chalk.bold(`\n  Deployment Runs`) + chalk.gray(` (last ${runs.length})\n`));
+
+      const table = new Table({
+        ...TABLE_STYLE,
+        head: ['ID', 'Project', 'Branch', 'Commit', 'Status', 'Duration', 'When'],
+      });
 
       for (const run of runs) {
         const project = getProject(run.project_id);
         const projectName = project ? project.name : run.project_id;
-        const commitSha = run.commit_sha ? run.commit_sha.substring(0, 7) : "latest";
+        const commitSha = run.commit_sha ? chalk.yellow(run.commit_sha.substring(0, 7)) : chalk.gray("latest");
         const durationStr = formatDuration(run.total_duration_ms);
         
-        console.log(
-          `${run.id.padEnd(14)} ${projectName.substring(0, 14).padEnd(15)} ${run.branch.substring(0, 9).padEnd(
-            10
-          )} ${commitSha.padEnd(8)} ${formatStatus(run.status).padEnd(20)} ${durationStr}`
-        );
+        table.push([
+          chalk.dim(run.id),
+          chalk.white.bold(projectName),
+          run.branch,
+          commitSha,
+          formatStatus(run.status),
+          durationStr,
+          chalk.gray(timeAgo(run.created_at)),
+        ]);
       }
+      console.log(table.toString());
       console.log();
     } catch (err: any) {
       console.error(chalk.red(`Error loading runs: ${err.message}`));
@@ -753,26 +785,43 @@ program
 
 // 5. RUN LOGS
 program
-  .command("logs <id>")
-  .description("View the output logs of a specific deployment run")
+  .command("logs [id]")
+  .description("View deployment logs. Without an ID, shows the latest run's logs")
   .option("-f, --follow", "Follow/stream the log output in real-time")
   .action(async (id, options) => {
     try {
-      const run = getDeployment(id);
+      let resolvedId = id;
+
+      // If no ID given, find the most recent deployment
+      if (!resolvedId) {
+        const latestRuns = getDeployments(undefined, 1);
+        if (latestRuns.length === 0) {
+          console.log(chalk.yellow("No deployment runs found in the database."));
+          return;
+        }
+        resolvedId = latestRuns[0].id;
+        console.log(chalk.gray(`No ID specified, showing latest deployment: ${resolvedId}`));
+      }
+
+      const run = getDeployment(resolvedId);
       if (!run) {
-        console.error(chalk.red(`Error: Deployment run "${id}" not found.`));
+        console.error(chalk.red(`Error: Deployment run "${resolvedId}" not found.`));
         return;
       }
 
       const project = getProject(run.project_id);
       const projectName = project ? project.name : run.project_id;
-      console.log(chalk.bold(`Logs for Deployment #${id} (${projectName} - ${run.branch}):`));
-      console.log(chalk.gray("--------------------------------------------------------------------------------"));
+
+      // Print log header
+      console.log();
+      console.log(chalk.bgCyan.black.bold(` LOGS `) + ` ${chalk.bold(projectName)} ${chalk.gray("\u2192")} ${run.branch} ${chalk.gray("@")} ${run.commit_sha?.substring(0, 7) || "latest"}`);
+      console.log(chalk.gray(`  ID: ${resolvedId}  \u2502  Status: `) + formatStatus(run.status) + chalk.gray(`  \u2502  ${timeAgo(run.created_at)}`));
+      console.log(chalk.gray("\u2500".repeat(80)));
 
       let lastPrintedLength = 0;
 
       const printNewLogs = () => {
-        const fullLog = getDeploymentLog(id);
+        const fullLog = getDeploymentLog(resolvedId);
         if (fullLog && fullLog.length > lastPrintedLength) {
           const newChunk = fullLog.substring(lastPrintedLength);
           process.stdout.write(newChunk);
@@ -783,9 +832,15 @@ program
       // Print whatever exists right now
       printNewLogs();
 
-      if (options.follow && (run.status === "RUNNING" || run.status === "QUEUED")) {
+      // Auto-follow if deployment is still active, or if explicitly requested
+      const isActive = run.status === "RUNNING" || run.status === "QUEUED";
+      if (isActive || options.follow) {
+        if (isActive) {
+          console.log(chalk.cyan("\n  \u25c9 Live streaming logs (Ctrl+C to stop)...\n"));
+        }
+
         const timer = setInterval(() => {
-          const currentRun = getDeployment(id);
+          const currentRun = getDeployment(resolvedId);
           if (!currentRun) {
             clearInterval(timer);
             return;
@@ -797,22 +852,22 @@ program
             clearInterval(timer);
             // final print diff
             printNewLogs();
-            console.log(chalk.gray("\n--------------------------------------------------------------------------------"));
-            console.log(`Deployment finished with status: ${formatStatus(currentRun.status)}`);
-            console.log(`Total duration: ${formatDuration(currentRun.total_duration_ms)}`);
+            console.log(chalk.gray("\n" + "\u2500".repeat(80)));
+            console.log(`  ${formatStatus(currentRun.status)}  \u2502  Duration: ${chalk.bold(formatDuration(currentRun.total_duration_ms))}`);
+            console.log();
           }
         }, 500);
 
         // Keep process open
         process.on("SIGINT", () => {
           clearInterval(timer);
-          console.log(chalk.yellow("\nLog streaming stopped by user."));
+          console.log(chalk.yellow("\n  Log streaming stopped by user."));
           process.exit(0);
         });
       } else {
-        console.log(chalk.gray("\n--------------------------------------------------------------------------------"));
-        console.log(`Deployment status: ${formatStatus(run.status)}`);
-        console.log(`Total duration: ${formatDuration(run.total_duration_ms)}`);
+        console.log(chalk.gray("\n" + "\u2500".repeat(80)));
+        console.log(`  ${formatStatus(run.status)}  \u2502  Duration: ${chalk.bold(formatDuration(run.total_duration_ms))}`);
+        console.log();
       }
     } catch (err: any) {
       console.error(chalk.red(`Error loading logs: ${err.message}`));
@@ -841,16 +896,31 @@ program
 
       const stats = getStats(projectId);
 
-      console.log(chalk.bold(`\n=== Deployment Statistics [${projectTitle}] ===\n`));
-      console.log(`Total Deployments:        ${chalk.cyan(stats.totalDeployments)}`);
-      
+      console.log(chalk.bold(`\n  Deployment Statistics`) + chalk.gray(` [${projectTitle}]\n`));
+
       const successColor = stats.successRate > 90 ? chalk.green : stats.successRate > 70 ? chalk.yellow : chalk.red;
-      console.log(`Success Rate:             ${successColor(`${stats.successRate}%`)}`);
-      
-      console.log(`Average Deployment Time:  ${chalk.cyan(formatDuration(stats.avgDeployTimeMs))}`);
-      console.log(`Average Build Step Time:  ${chalk.cyan(formatDuration(stats.avgBuildTimeMs))}`);
-      console.log(`Fastest Deployment:       ${chalk.green(formatDuration(stats.fastestDeployMs))}`);
-      console.log(`Slowest Deployment:       ${chalk.red(formatDuration(stats.slowestDeployMs))}`);
+      const successBar = (() => {
+        const filled = Math.round(stats.successRate / 5);
+        const empty = 20 - filled;
+        return successColor('█'.repeat(filled)) + chalk.gray('░'.repeat(empty));
+      })();
+
+      const table = new Table({
+        ...TABLE_STYLE,
+        head: ['Metric', 'Value'],
+        colWidths: [28, 35],
+      });
+
+      table.push(
+        ['Total Deployments', chalk.cyan.bold(String(stats.totalDeployments))],
+        ['Success Rate', `${successBar} ${successColor(`${stats.successRate}%`)}`],
+        ['Avg Deploy Time', chalk.cyan(formatDuration(stats.avgDeployTimeMs))],
+        ['Avg Build Step Time', chalk.cyan(formatDuration(stats.avgBuildTimeMs))],
+        ['Fastest Deployment', chalk.green(formatDuration(stats.fastestDeployMs))],
+        ['Slowest Deployment', chalk.red(formatDuration(stats.slowestDeployMs))],
+      );
+
+      console.log(table.toString());
       console.log();
     } catch (err: any) {
       console.error(chalk.red(`Error loading stats: ${err.message}`));
@@ -929,33 +999,31 @@ program
       const activeDeploys = allDeploys.filter(d => d.status === "QUEUED" || d.status === "RUNNING");
 
       if (activeDeploys.length === 0) {
-        console.log(chalk.green("No active or queued deployments. The queue is empty."));
+        console.log(chalk.green("\n  ✔ No active or queued deployments. The queue is empty.\n"));
         return;
       }
 
-      console.log(chalk.bold("\nActive Queue:"));
-      console.log(
-        chalk.gray("--------------------------------------------------------------------------------")
-      );
-      console.log(
-        `${chalk.bold("ID").padEnd(14)} ${chalk.bold("Project").padEnd(15)} ${chalk.bold(
-          "Branch"
-        ).padEnd(10)} ${chalk.bold("Commit").padEnd(8)} ${chalk.bold("Status")}`
-      );
-      console.log(
-        chalk.gray("--------------------------------------------------------------------------------")
-      );
+      console.log(chalk.bold(`\n  Active Queue`) + chalk.gray(` (${activeDeploys.length} items)\n`));
+
+      const table = new Table({
+        ...TABLE_STYLE,
+        head: ['ID', 'Project', 'Branch', 'Commit', 'Status', 'Queued'],
+      });
 
       for (const run of activeDeploys) {
         const project = getProject(run.project_id);
         const projectName = project ? project.name : run.project_id;
-        const commitSha = run.commit_sha ? run.commit_sha.substring(0, 7) : "latest";
-        console.log(
-          `${run.id.padEnd(14)} ${projectName.substring(0, 14).padEnd(15)} ${run.branch.substring(0, 9).padEnd(
-            10
-          )} ${commitSha.padEnd(8)} ${formatStatus(run.status)}`
-        );
+        const commitSha = run.commit_sha ? chalk.yellow(run.commit_sha.substring(0, 7)) : chalk.gray("latest");
+        table.push([
+          chalk.dim(run.id),
+          chalk.white.bold(projectName),
+          run.branch,
+          commitSha,
+          formatStatus(run.status),
+          chalk.gray(timeAgo(run.created_at)),
+        ]);
       }
+      console.log(table.toString());
       console.log();
     } catch (err: any) {
       console.error(chalk.red(`Error reading queue: ${err.message}`));
@@ -991,25 +1059,24 @@ const projectsCmd = program
         return;
       }
 
-      console.log(chalk.bold("\nConfigured Projects:"));
-      console.log(
-        chalk.gray("--------------------------------------------------------------------------------")
-      );
-      console.log(
-        `${chalk.bold("Name").padEnd(15)} ${chalk.bold("Repository").padEnd(30)} ${chalk.bold(
-          "Branch"
-        ).padEnd(12)} ${chalk.bold("Target Path")}`
-      );
-      console.log(
-        chalk.gray("--------------------------------------------------------------------------------")
-      );
+      console.log(chalk.bold(`\n  Configured Projects`) + chalk.gray(` (${projects.length})\n`));
+
+      const table = new Table({
+        ...TABLE_STYLE,
+        head: ['Name', 'Repository', 'Branch', 'Target', 'Path'],
+      });
 
       for (const project of projects) {
         const repoStr = `${project.owner}/${project.repo}`;
-        console.log(
-          `${project.name.padEnd(15)} ${repoStr.substring(0, 29).padEnd(30)} ${project.branch.padEnd(12)} ${project.target_path}`
-        );
+        table.push([
+          chalk.white.bold(project.name),
+          chalk.cyan(repoStr),
+          project.branch,
+          project.target_type === 'ssh' ? chalk.magenta('SSH') : chalk.blue('Local'),
+          chalk.gray(project.target_path),
+        ]);
       }
+      console.log(table.toString());
       console.log();
     } catch (err: any) {
       console.error(chalk.red(`Error loading projects: ${err.message}`));
@@ -1042,22 +1109,22 @@ program
         return;
       }
 
-      console.log(chalk.bold("\nGitHub Repositories:"));
-      console.log(
-        chalk.gray("--------------------------------------------------------------------------------")
-      );
-      console.log(
-        `${chalk.bold("Full Name").padEnd(45)} ${chalk.bold("Clone URL")}`
-      );
-      console.log(
-        chalk.gray("--------------------------------------------------------------------------------")
-      );
+      console.log(chalk.bold(`\n  GitHub Repositories`) + chalk.gray(` (${repos.length})\n`));
 
-      for (const repo of repos) {
-        console.log(
-          `${repo.fullName.padEnd(45)} ${repo.url}`
-        );
-      }
+      const table = new Table({
+        ...TABLE_STYLE,
+        head: ['#', 'Repository', 'Clone URL'],
+      });
+
+      repos.forEach((repo, i) => {
+        table.push([
+          chalk.gray(String(i + 1)),
+          chalk.white.bold(repo.fullName),
+          chalk.gray(repo.url),
+        ]);
+      });
+
+      console.log(table.toString());
       console.log();
     } catch (err: any) {
       console.error(chalk.red(`Error: ${err.message}`));
@@ -1165,37 +1232,71 @@ projectCmd
 
       const webhook = getWebhookByProjectId(project.id);
 
-      console.log(chalk.bold(`\n=== Project: ${project.name} ===`));
-      console.log(`Database ID:     ${project.id}`);
-      console.log(`Repository:      https://github.com/${project.owner}/${project.repo} (Branch: ${project.branch})`);
-      console.log(`Target Type:     ${project.target_type}`);
-      if (project.target_type === "ssh") {
-        console.log(`Target Host:     ${project.target_host}`);
+      // Project Info Table
+      console.log(chalk.bold(`\n  Project: ${project.name}\n`));
+
+      const infoTable = new Table({
+        ...TABLE_STYLE,
+        colWidths: [20, 50],
+      });
+
+      infoTable.push(
+        [chalk.gray('Database ID'), project.id],
+        [chalk.gray('Repository'), chalk.cyan(`https://github.com/${project.owner}/${project.repo}`)],
+        [chalk.gray('Branch'), project.branch],
+        [chalk.gray('Target Type'), project.target_type === 'ssh' ? chalk.magenta('SSH') : chalk.blue('Local')],
+      );
+      if (project.target_type === "ssh" && project.target_host) {
+        infoTable.push([chalk.gray('Target Host'), project.target_host]);
       }
-      console.log(`Target Path:     ${project.target_path}`);
-      console.log(`Install Cmd:     ${project.install_cmd || chalk.gray("none")}`);
-      console.log(`Build Cmd:       ${project.build_cmd || chalk.gray("none")}`);
-      console.log(`Restart Cmd:     ${project.restart_cmd || chalk.gray("none")}`);
-      
-      console.log(chalk.bold(`\n--- Webhook Settings ---`));
+      infoTable.push(
+        [chalk.gray('Target Path'), project.target_path],
+        [chalk.gray('Install Cmd'), project.install_cmd || chalk.dim('none')],
+        [chalk.gray('Build Cmd'), project.build_cmd || chalk.dim('none')],
+        [chalk.gray('Restart Cmd'), project.restart_cmd || chalk.dim('none')],
+      );
+      console.log(infoTable.toString());
+
+      // Webhook Table
+      console.log(chalk.bold(`\n  Webhook Settings\n`));
+
       if (webhook) {
-        console.log(`Webhook URL:     ${webhook.url}`);
-        console.log(`GitHub Hook ID:  ${webhook.github_webhook_id || chalk.gray("none (registered locally)")}`);
-        console.log(`HMAC Secret:     ${webhook.secret}`);
-        console.log(`Status:          ${webhook.active ? chalk.green("active") : chalk.red("inactive")}`);
+        const whTable = new Table({
+          ...TABLE_STYLE,
+          colWidths: [20, 50],
+        });
+        whTable.push(
+          [chalk.gray('Webhook URL'), webhook.url],
+          [chalk.gray('GitHub Hook ID'), webhook.github_webhook_id ? String(webhook.github_webhook_id) : chalk.dim('none (local only)')],
+          [chalk.gray('HMAC Secret'), webhook.secret],
+          [chalk.gray('Status'), webhook.active ? chalk.green.bold('● Active') : chalk.red.bold('○ Inactive')],
+        );
+        console.log(whTable.toString());
       } else {
-        console.log(chalk.yellow("No webhook settings found in database. Run 'gitship sync' to set it up."));
+        console.log(chalk.yellow("  No webhook settings found. Run 'gitship sync' to set it up."));
       }
 
+      // Recent Runs Table
       const projectRuns = getDeployments(project.id, 5);
-      console.log(chalk.bold(`\n--- Recent Runs ---`));
+      console.log(chalk.bold(`\n  Recent Runs\n`));
+
       if (projectRuns.length === 0) {
-        console.log(chalk.gray("No runs recorded yet."));
+        console.log(chalk.gray("  No runs recorded yet."));
       } else {
+        const runsTable = new Table({
+          ...TABLE_STYLE,
+          head: ['ID', 'Status', 'Commit', 'Message', 'Duration'],
+        });
         for (const run of projectRuns) {
-          const durationStr = formatDuration(run.total_duration_ms);
-          console.log(`  #${run.id.substring(0, 10)} - [${formatStatus(run.status)}] - ${run.commit_sha?.substring(0, 7) || "latest"} - ${run.commit_message || "no message"} (${durationStr})`);
+          runsTable.push([
+            chalk.dim(run.id.substring(0, 12)),
+            formatStatus(run.status),
+            run.commit_sha ? chalk.yellow(run.commit_sha.substring(0, 7)) : chalk.gray('latest'),
+            (run.commit_message || chalk.dim('no message')).substring(0, 30),
+            formatDuration(run.total_duration_ms),
+          ]);
         }
+        console.log(runsTable.toString());
       }
       console.log();
     } catch (err: any) {
