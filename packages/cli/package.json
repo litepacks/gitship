@@ -1,0 +1,26 @@
+{
+  "name": "@deploykit/cli",
+  "version": "1.0.0",
+  "type": "module",
+  "bin": {
+    "deploykit": "./dist/bin.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"No tests for cli\""
+  },
+  "dependencies": {
+    "@deploykit/core": "*",
+    "@deploykit/shared": "*",
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "inquirer": "^9.2.22",
+    "nanoid": "^5.0.7",
+    "ora": "^8.0.1"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^9.0.7",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.4.5"
+  }
+}

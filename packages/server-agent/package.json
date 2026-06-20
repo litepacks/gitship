@@ -1,0 +1,21 @@
+{
+  "name": "@deploykit/agent",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node ./dist/server.js",
+    "test": "echo \"No tests for agent\""
+  },
+  "dependencies": {
+    "@deploykit/core": "*",
+    "@deploykit/shared": "*",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.4.5"
+  }
+}
