@@ -6,6 +6,27 @@ Instead of configuring complex CI/CD platforms or UI tools, GitShip operates on 
 
 ---
 
+## 🛠️ Node Version Management (NVM)
+
+This project targets Node.js **v22**. We use [NVM (Node Version Manager)](https://github.com/nvm-sh/nvm) to easily manage and switch Node versions.
+
+A `.nvmrc` file is provided in the project root. To get started:
+
+1. **Install the correct Node version** (if not already installed):
+   ```bash
+   nvm install
+   ```
+2. **Switch to the project's Node version**:
+   ```bash
+   nvm use
+   ```
+3. (Optional) Set Node 22 as your shell's default:
+   ```bash
+   nvm alias default 22
+   ```
+
+---
+
 ## 🏛 General Architecture
 
 GitShip is designed as a modular **Monorepo** using NPM Workspaces:
