@@ -4,7 +4,7 @@ import fs from "fs";
 
 export const DEPLOYKIT_DIR = process.env.DEPLOYKIT_DIR || path.join(os.homedir(), ".deploykit");
 export const CONFIG_PATH = path.join(DEPLOYKIT_DIR, "config.json");
-export const DB_PATH = path.join(DEPLOYKIT_DIR, "deploykit.db");
+export const DB_PATH = path.join(DEPLOYKIT_DIR, "deploykit.json");
 export const BUILDS_DIR = path.join(DEPLOYKIT_DIR, "builds");
 
 export function ensureDirsExist() {

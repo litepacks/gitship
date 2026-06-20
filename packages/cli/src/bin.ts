@@ -1,4 +1,10 @@
 #!/usr/bin/env node
+const [nodeMajor] = process.versions.node.split(".").map(Number);
+if (nodeMajor < 20) {
+  console.error(`\x1b[31mError: DeployKit requires Node.js version 20 or higher. Current version: v${process.versions.node}\x1b[0m`);
+  process.exit(1);
+}
+
 import { Command } from "commander";
 import inquirer from "inquirer";
 import chalk from "chalk";

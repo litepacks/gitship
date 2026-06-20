@@ -1,370 +1,243 @@
-import Database from "better-sqlite3";
 import fs from "fs";
+import path from "path";
 import { DB_PATH, ensureDirsExist } from "./paths.js";
 import {
   Project,
   Webhook,
   Deployment,
   DeploymentStep,
-  DeploymentLog,
   DeploymentStatus,
   StepStatus,
+  ProjectStats,
 } from "gitship-shared";
 
-let dbInstance: Database.Database | null = null;
-
-export function getDb(): Database.Database {
-  if (dbInstance) return dbInstance;
-  ensureDirsExist();
-  dbInstance = new Database(DB_PATH);
-  try {
-    fs.chmodSync(DB_PATH, 0o600);
-  } catch {}
-  dbInstance.pragma("journal_mode = WAL");
-  dbInstance.pragma("foreign_keys = ON");
-  initDb(dbInstance);
-  return dbInstance;
+interface JsonDbSchema {
+  projects: Project[];
+  webhooks: Webhook[];
+  deployments: Deployment[];
+  deployment_steps: DeploymentStep[];
+  deployment_logs: Record<string, string>;
+  webhook_deliveries: { id: string; created_at: number }[];
 }
 
-function initDb(db: Database.Database) {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS projects (
-      id TEXT PRIMARY KEY,
-      name TEXT UNIQUE NOT NULL,
-      owner TEXT NOT NULL,
-      repo TEXT NOT NULL,
-      branch TEXT NOT NULL,
-      target_type TEXT NOT NULL,
-      target_host TEXT,
-      target_path TEXT NOT NULL,
-      install_cmd TEXT,
-      build_cmd TEXT,
-      restart_cmd TEXT,
-      healthcheck_path TEXT,
-      healthcheck_port INTEGER,
-      healthcheck_retries INTEGER,
-      healthcheck_interval_ms INTEGER,
-      healthcheck_timeout_ms INTEGER,
-      webhook_secret TEXT NOT NULL,
-      created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL
-    );
+function readDb(): JsonDbSchema {
+  ensureDirsExist();
+  if (!fs.existsSync(DB_PATH)) {
+    const empty: JsonDbSchema = {
+      projects: [],
+      webhooks: [],
+      deployments: [],
+      deployment_steps: [],
+      deployment_logs: {},
+      webhook_deliveries: [],
+    };
+    writeDb(empty);
+    return empty;
+  }
+  try {
+    const raw = fs.readFileSync(DB_PATH, "utf-8");
+    return JSON.parse(raw);
+  } catch (err) {
+    const empty: JsonDbSchema = {
+      projects: [],
+      webhooks: [],
+      deployments: [],
+      deployment_steps: [],
+      deployment_logs: {},
+      webhook_deliveries: [],
+    };
+    writeDb(empty);
+    return empty;
+  }
+}
 
-    CREATE TABLE IF NOT EXISTS webhooks (
-      id TEXT PRIMARY KEY,
-      project_id TEXT NOT NULL,
-      github_webhook_id INTEGER,
-      url TEXT NOT NULL,
-      secret TEXT NOT NULL,
-      active INTEGER NOT NULL DEFAULT 1,
-      created_at INTEGER NOT NULL,
-      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS deployments (
-      id TEXT PRIMARY KEY,
-      project_id TEXT NOT NULL,
-      branch TEXT NOT NULL,
-      commit_sha TEXT,
-      commit_message TEXT,
-      author TEXT,
-      status TEXT NOT NULL,
-      started_at INTEGER,
-      finished_at INTEGER,
-      total_duration_ms INTEGER,
-      rollback_of_id TEXT,
-      created_at INTEGER NOT NULL,
-      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS deployment_steps (
-      id TEXT PRIMARY KEY,
-      deployment_id TEXT NOT NULL,
-      step_name TEXT NOT NULL,
-      status TEXT NOT NULL,
-      started_at INTEGER,
-      finished_at INTEGER,
-      duration_ms INTEGER,
-      FOREIGN KEY (deployment_id) REFERENCES deployments(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS deployment_logs (
-      deployment_id TEXT PRIMARY KEY,
-      log_data TEXT NOT NULL,
-      FOREIGN KEY (deployment_id) REFERENCES deployments(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS webhook_deliveries (
-      id TEXT PRIMARY KEY,
-      created_at INTEGER NOT NULL
-    );
-  `);
+function writeDb(data: JsonDbSchema) {
+  ensureDirsExist();
+  const tempPath = `${DB_PATH}.tmp`;
+  fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), "utf-8");
+  try {
+    fs.chmodSync(tempPath, 0o600);
+  } catch {}
+  fs.renameSync(tempPath, DB_PATH);
 }
 
 // Project Repositories
 export function addProject(project: Omit<Project, "created_at" | "updated_at">): Project {
-  const db = getDb();
+  const data = readDb();
   const now = Date.now();
-  const fullProject = { ...project, created_at: now, updated_at: now };
-  const stmt = db.prepare(`
-    INSERT INTO projects (id, name, owner, repo, branch, target_type, target_host, target_path, install_cmd, build_cmd, restart_cmd, healthcheck_path, healthcheck_port, healthcheck_retries, healthcheck_interval_ms, healthcheck_timeout_ms, webhook_secret, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(name) DO UPDATE SET
-      owner = excluded.owner,
-      repo = excluded.repo,
-      branch = excluded.branch,
-      target_type = excluded.target_type,
-      target_host = excluded.target_host,
-      target_path = excluded.target_path,
-      install_cmd = excluded.install_cmd,
-      build_cmd = excluded.build_cmd,
-      restart_cmd = excluded.restart_cmd,
-      healthcheck_path = excluded.healthcheck_path,
-      healthcheck_port = excluded.healthcheck_port,
-      healthcheck_retries = excluded.healthcheck_retries,
-      healthcheck_interval_ms = excluded.healthcheck_interval_ms,
-      healthcheck_timeout_ms = excluded.healthcheck_timeout_ms,
-      webhook_secret = excluded.webhook_secret,
-      updated_at = excluded.updated_at
-  `);
-  stmt.run(
-    fullProject.id,
-    fullProject.name,
-    fullProject.owner,
-    fullProject.repo,
-    fullProject.branch,
-    fullProject.target_type,
-    fullProject.target_host || null,
-    fullProject.target_path,
-    fullProject.install_cmd || null,
-    fullProject.build_cmd || null,
-    fullProject.restart_cmd || null,
-    fullProject.healthcheck_path || null,
-    fullProject.healthcheck_port || null,
-    fullProject.healthcheck_retries || null,
-    fullProject.healthcheck_interval_ms || null,
-    fullProject.healthcheck_timeout_ms || null,
-    fullProject.webhook_secret,
-    fullProject.created_at,
-    fullProject.updated_at
-  );
+  const existingIndex = data.projects.findIndex(p => p.name === project.name || p.id === project.id);
+  let fullProject: Project;
+  if (existingIndex !== -1) {
+    const oldProj = data.projects[existingIndex];
+    fullProject = {
+      ...oldProj,
+      ...project,
+      updated_at: now,
+    };
+    data.projects[existingIndex] = fullProject;
+  } else {
+    fullProject = {
+      ...project,
+      created_at: now,
+      updated_at: now,
+    };
+    data.projects.push(fullProject);
+  }
+  writeDb(data);
   return fullProject;
 }
 
 export function getProject(idOrName: string): Project | null {
-  const db = getDb();
-  const stmt = db.prepare("SELECT * FROM projects WHERE id = ? OR name = ?");
-  const res = stmt.get(idOrName, idOrName) as Project | undefined;
-  return res || null;
+  const data = readDb();
+  const found = data.projects.find(p => p.id === idOrName || p.name === idOrName);
+  return found || null;
 }
 
 export function getProjects(): Project[] {
-  const db = getDb();
-  const stmt = db.prepare("SELECT * FROM projects ORDER BY name ASC");
-  return stmt.all() as Project[];
+  const data = readDb();
+  return [...data.projects].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function removeProject(id: string): void {
-  const db = getDb();
-  const stmt = db.prepare("DELETE FROM projects WHERE id = ?");
-  stmt.run(id);
+  const data = readDb();
+  data.projects = data.projects.filter(p => p.id !== id);
+  data.webhooks = data.webhooks.filter(w => w.project_id !== id);
+  const depIds = data.deployments.filter(d => d.project_id === id).map(d => d.id);
+  data.deployments = data.deployments.filter(d => d.project_id !== id);
+  data.deployment_steps = data.deployment_steps.filter(ds => !depIds.includes(ds.deployment_id));
+  for (const depId of depIds) {
+    delete data.deployment_logs[depId];
+  }
+  writeDb(data);
 }
 
 // Webhook Repositories
 export function saveWebhook(webhook: Webhook): void {
-  const db = getDb();
-  const stmt = db.prepare(`
-    INSERT INTO webhooks (id, project_id, github_webhook_id, url, secret, active, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(id) DO UPDATE SET
-      github_webhook_id = excluded.github_webhook_id,
-      url = excluded.url,
-      secret = excluded.secret,
-      active = excluded.active
-  `);
-  stmt.run(
-    webhook.id,
-    webhook.project_id,
-    webhook.github_webhook_id,
-    webhook.url,
-    webhook.secret,
-    webhook.active ? 1 : 0,
-    webhook.created_at
-  );
+  const data = readDb();
+  const idx = data.webhooks.findIndex(w => w.id === webhook.id);
+  if (idx !== -1) {
+    data.webhooks[idx] = { ...data.webhooks[idx], ...webhook };
+  } else {
+    data.webhooks.push(webhook);
+  }
+  writeDb(data);
 }
 
 export function getWebhookByProjectId(projectId: string): Webhook | null {
-  const db = getDb();
-  const stmt = db.prepare("SELECT * FROM webhooks WHERE project_id = ?");
-  const res = stmt.get(projectId) as any;
-  if (!res) return null;
-  return {
-    ...res,
-    active: res.active === 1,
-  };
+  const data = readDb();
+  const found = data.webhooks.find(w => w.project_id === projectId);
+  return found || null;
 }
 
 // Deployment Repositories
 export function createDeployment(deployment: Omit<Deployment, "created_at">): Deployment {
-  const db = getDb();
-  const now = Date.now();
-  const fullDeployment = { ...deployment, created_at: now };
-  const stmt = db.prepare(`
-    INSERT INTO deployments (id, project_id, branch, commit_sha, commit_message, author, status, started_at, finished_at, total_duration_ms, rollback_of_id, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  stmt.run(
-    fullDeployment.id,
-    fullDeployment.project_id,
-    fullDeployment.branch,
-    fullDeployment.commit_sha || null,
-    fullDeployment.commit_message || null,
-    fullDeployment.author || null,
-    fullDeployment.status,
-    fullDeployment.started_at || null,
-    fullDeployment.finished_at || null,
-    fullDeployment.total_duration_ms || null,
-    fullDeployment.rollback_of_id || null,
-    fullDeployment.created_at
-  );
-
-  // Initialize empty logs for this deployment
-  const logStmt = db.prepare("INSERT INTO deployment_logs (deployment_id, log_data) VALUES (?, ?)");
-  logStmt.run(fullDeployment.id, "");
-
+  const data = readDb();
+  const fullDeployment: Deployment = { ...deployment, created_at: Date.now() };
+  data.deployments.push(fullDeployment);
+  writeDb(data);
   return fullDeployment;
+}
+
+export function getDeployment(id: string): Deployment | null {
+  const data = readDb();
+  const found = data.deployments.find(d => d.id === id);
+  return found || null;
+}
+
+export function getDeployments(projectId?: string, limit?: number): Deployment[] {
+  const data = readDb();
+  let list = [...data.deployments];
+  if (projectId) {
+    list = list.filter(d => d.project_id === projectId);
+  }
+  list.sort((a, b) => b.created_at - a.created_at);
+  if (limit !== undefined) {
+    list = list.slice(0, limit);
+  }
+  return list;
+}
+
+export function getQueuedDeployments(projectId: string): Deployment[] {
+  const data = readDb();
+  return data.deployments
+    .filter(d => d.project_id === projectId && d.status === "QUEUED")
+    .sort((a, b) => a.created_at - b.created_at);
+}
+
+export function getRunningDeployment(projectId: string): Deployment | null {
+  const data = readDb();
+  const found = data.deployments.find(d => d.project_id === projectId && d.status === "RUNNING");
+  return found || null;
 }
 
 export function updateDeploymentStatus(
   id: string,
   status: DeploymentStatus,
-  fields: Partial<Deployment> = {}
+  extraFields?: Partial<Omit<Deployment, "id" | "status">>
 ): void {
-  const db = getDb();
-  const updates: string[] = ["status = ?"];
-  const params: any[] = [status];
-
-  for (const [key, val] of Object.entries(fields)) {
-    if (key !== "id" && key !== "status") {
-      updates.push(`${key} = ?`);
-      params.push(val);
-    }
+  const data = readDb();
+  const idx = data.deployments.findIndex(d => d.id === id);
+  if (idx !== -1) {
+    data.deployments[idx] = {
+      ...data.deployments[idx],
+      status,
+      ...extraFields,
+    };
+    writeDb(data);
   }
-
-  params.push(id);
-  const stmt = db.prepare(`UPDATE deployments SET ${updates.join(", ")} WHERE id = ?`);
-  stmt.run(...params);
 }
 
-export function getDeployment(id: string): Deployment | null {
-  const db = getDb();
-  const stmt = db.prepare("SELECT * FROM deployments WHERE id = ?");
-  const res = stmt.get(id) as Deployment | undefined;
-  return res || null;
-}
-
-export function getDeployments(projectId?: string, limit?: number): Deployment[] {
-  const db = getDb();
-  let query = "SELECT * FROM deployments";
-  const params: any[] = [];
-
-  if (projectId) {
-    query += " WHERE project_id = ?";
-    params.push(projectId);
-  }
-
-  query += " ORDER BY created_at DESC";
-
-  if (limit) {
-    query += " LIMIT ?";
-    params.push(limit);
-  }
-
-  const stmt = db.prepare(query);
-  return stmt.all(...params) as Deployment[];
-}
-
-export function getQueuedDeployments(projectId: string): Deployment[] {
-  const db = getDb();
-  const stmt = db.prepare("SELECT * FROM deployments WHERE project_id = ? AND status = 'QUEUED' ORDER BY created_at ASC");
-  return stmt.all(projectId) as Deployment[];
-}
-
-export function getRunningDeployment(projectId: string): Deployment | null {
-  const db = getDb();
-  const stmt = db.prepare("SELECT * FROM deployments WHERE project_id = ? AND status = 'RUNNING'");
-  const res = stmt.get(projectId) as Deployment | undefined;
-  return res || null;
-}
-
-// Steps Repositories
+// Deployment Steps Repositories
 export function createDeploymentStep(step: DeploymentStep): void {
-  const db = getDb();
-  const stmt = db.prepare(`
-    INSERT INTO deployment_steps (id, deployment_id, step_name, status, started_at, finished_at, duration_ms)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `);
-  stmt.run(step.id, step.deployment_id, step.step_name, step.status, step.started_at, step.finished_at, step.duration_ms);
+  const data = readDb();
+  data.deployment_steps.push(step);
+  writeDb(data);
 }
 
-export function updateDeploymentStep(id: string, fields: Partial<DeploymentStep>): void {
-  const db = getDb();
-  const updates: string[] = [];
-  const params: any[] = [];
-
-  for (const [key, val] of Object.entries(fields)) {
-    if (key !== "id") {
-      updates.push(`${key} = ?`);
-      params.push(val);
-    }
+export function updateDeploymentStep(
+  deploymentId: string,
+  stepName: string,
+  status: StepStatus,
+  extraFields?: Partial<Omit<DeploymentStep, "deployment_id" | "step_name" | "status">>
+): void {
+  const data = readDb();
+  const idx = data.deployment_steps.findIndex(ds => ds.deployment_id === deploymentId && ds.step_name === stepName);
+  if (idx !== -1) {
+    data.deployment_steps[idx] = {
+      ...data.deployment_steps[idx],
+      status,
+      ...extraFields,
+    };
+    writeDb(data);
   }
-
-  params.push(id);
-  const stmt = db.prepare(`UPDATE deployment_steps SET ${updates.join(", ")} WHERE id = ?`);
-  stmt.run(...params);
 }
 
 export function getDeploymentSteps(deploymentId: string): DeploymentStep[] {
-  const db = getDb();
-  const stmt = db.prepare("SELECT * FROM deployment_steps WHERE deployment_id = ? ORDER BY started_at ASC");
-  return stmt.all(deploymentId) as DeploymentStep[];
+  const data = readDb();
+  return data.deployment_steps.filter(ds => ds.deployment_id === deploymentId);
 }
 
-// Log Repositories
-export function appendDeploymentLog(deploymentId: string, text: string): void {
-  const db = getDb();
-  const stmt = db.prepare(`
-    UPDATE deployment_logs
-    SET log_data = log_data || ?
-    WHERE deployment_id = ?
-  `);
-  stmt.run(text, deploymentId);
+// Deployment Logs Repositories
+export function appendDeploymentLog(deploymentId: string, logText: string): void {
+  const data = readDb();
+  const existing = data.deployment_logs[deploymentId] || "";
+  data.deployment_logs[deploymentId] = existing + logText;
+  writeDb(data);
 }
 
 export function getDeploymentLog(deploymentId: string): string | null {
-  const db = getDb();
-  const stmt = db.prepare("SELECT log_data FROM deployment_logs WHERE deployment_id = ?");
-  const res = stmt.get(deploymentId) as { log_data: string } | undefined;
-  return res ? res.log_data : null;
+  const data = readDb();
+  return data.deployment_logs[deploymentId] !== undefined ? data.deployment_logs[deploymentId] : null;
 }
 
-// Stats Repository
-export interface ProjectStats {
-  totalDeployments: number;
-  successRate: number;
-  avgDeployTimeMs: number;
-  avgBuildTimeMs: number;
-  slowestDeployMs: number;
-  fastestDeployMs: number;
-}
-
+// Stats & Metrics
 export function getStats(projectId?: string): ProjectStats {
-  const db = getDb();
-  const filter = projectId ? "WHERE project_id = ?" : "WHERE 1=1";
-  const params = projectId ? [projectId] : [];
-
-  const totalRow = db.prepare(`SELECT count(*) as count FROM deployments ${filter}`).get(...params) as { count: number };
-  const total = totalRow.count;
+  const data = readDb();
+  let deploys = [...data.deployments];
+  if (projectId) {
+    deploys = deploys.filter(d => d.project_id === projectId);
+  }
+  const total = deploys.length;
 
   if (total === 0) {
     return {
@@ -377,49 +250,57 @@ export function getStats(projectId?: string): ProjectStats {
     };
   }
 
-  const successRow = db.prepare(`SELECT count(*) as count FROM deployments ${filter} AND status = 'SUCCESS'`).get(...params) as { count: number };
-  const successRate = total > 0 ? (successRow.count / total) * 100 : 0;
+  const successDeploys = deploys.filter(d => d.status === "SUCCESS");
+  const successCount = successDeploys.length;
+  const successRate = total > 0 ? (successCount / total) * 100 : 0;
 
-  const durationRow = db.prepare(`
-    SELECT
-      avg(total_duration_ms) as avg_duration,
-      max(total_duration_ms) as max_duration,
-      min(total_duration_ms) as min_duration
-    FROM deployments
-    ${filter} AND status = 'SUCCESS'
-  `).get(...params) as { avg_duration: number | null; max_duration: number | null; min_duration: number | null };
+  const successDurations = successDeploys
+    .map(d => d.total_duration_ms)
+    .filter((d): d is number => d !== null && d !== undefined);
 
-  const buildDurationRow = db.prepare(`
-    SELECT avg(ds.duration_ms) as avg_build
-    FROM deployment_steps ds
-    JOIN deployments d ON ds.deployment_id = d.id
-    ${projectId ? "WHERE d.project_id = ?" : "WHERE 1=1"} AND ds.step_name = 'build' AND ds.status = 'SUCCESS'
-  `).get(projectId ? [projectId] : []) as { avg_build: number | null };
+  const avgDeployTimeMs = successDurations.length > 0
+    ? Math.round(successDurations.reduce((sum, val) => sum + val, 0) / successDurations.length)
+    : 0;
+
+  const slowestDeployMs = successDurations.length > 0 ? Math.max(...successDurations) : 0;
+  const fastestDeployMs = successDurations.length > 0 ? Math.min(...successDurations) : 0;
+
+  const depIds = deploys.map(d => d.id);
+  const buildSteps = data.deployment_steps.filter(ds => 
+    depIds.includes(ds.deployment_id) && 
+    ds.step_name === "build" && 
+    ds.status === "SUCCESS"
+  );
+  const buildDurations = buildSteps
+    .map(ds => ds.duration_ms)
+    .filter((d): d is number => d !== null && d !== undefined);
+
+  const avgBuildTimeMs = buildDurations.length > 0
+    ? Math.round(buildDurations.reduce((sum, val) => sum + val, 0) / buildDurations.length)
+    : 0;
 
   return {
     totalDeployments: total,
     successRate: parseFloat(successRate.toFixed(1)),
-    avgDeployTimeMs: Math.round(durationRow.avg_duration || 0),
-    avgBuildTimeMs: Math.round(buildDurationRow.avg_build || 0),
-    slowestDeployMs: durationRow.max_duration || 0,
-    fastestDeployMs: durationRow.min_duration || 0,
+    avgDeployTimeMs,
+    avgBuildTimeMs,
+    slowestDeployMs,
+    fastestDeployMs,
   };
 }
 
+// Webhook Delivery Processed Protection
 export function isWebhookDeliveryProcessed(id: string): boolean {
-  const db = getDb();
-  const stmt = db.prepare("SELECT count(*) as count FROM webhook_deliveries WHERE id = ?");
-  const res = stmt.get(id) as { count: number };
-  return res.count > 0;
+  const data = readDb();
+  return data.webhook_deliveries.some(d => d.id === id);
 }
 
 export function recordWebhookDelivery(id: string): void {
-  const db = getDb();
+  const data = readDb();
   const now = Date.now();
-  const insertStmt = db.prepare("INSERT OR IGNORE INTO webhook_deliveries (id, created_at) VALUES (?, ?)");
-  insertStmt.run(id, now);
-
-  // Prune older than 24 hours (86,400,000 ms)
-  const pruneStmt = db.prepare("DELETE FROM webhook_deliveries WHERE created_at < ?");
-  pruneStmt.run(now - 86400000);
+  if (!data.webhook_deliveries.some(d => d.id === id)) {
+    data.webhook_deliveries.push({ id, created_at: now });
+  }
+  data.webhook_deliveries = data.webhook_deliveries.filter(d => d.created_at >= now - 86400000);
+  writeDb(data);
 }
