@@ -518,6 +518,12 @@ program
           message: "Restart application command:",
           default: restartDefault,
         },
+        {
+          type: "input",
+          name: "nodeVersion",
+          message: "Node.js version (via nvm, e.g. 20, 22.1.0, leave empty to skip):",
+          default: "",
+        },
       ]);
 
       // Construct config content
@@ -535,6 +541,7 @@ program
           path: details.targetPath,
         },
         deploy: {
+          node_version: details.nodeVersion || undefined,
           install: details.installCmd || undefined,
           build: details.buildCmd || undefined,
           restart: details.restartCmd || undefined,
@@ -703,6 +710,7 @@ program
         target_type: newConfig.target.type,
         target_host: newConfig.target.host,
         target_path: newConfig.target.path,
+        node_version: newConfig.deploy.node_version,
         install_cmd: newConfig.deploy.install,
         build_cmd: newConfig.deploy.build,
         restart_cmd: newConfig.deploy.restart,
@@ -1166,6 +1174,7 @@ projectCmd
         target_type: config.target.type,
         target_host: config.target.host,
         target_path: config.target.path,
+        node_version: config.deploy.node_version,
         install_cmd: config.deploy.install,
         build_cmd: config.deploy.build,
         restart_cmd: config.deploy.restart,

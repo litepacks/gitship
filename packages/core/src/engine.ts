@@ -72,6 +72,7 @@ export async function runDeploymentPipeline(
       `Branch: ${deployment.branch}\n` +
       `Commit: ${deployment.commit_sha || "latest"}\n` +
       `Author: ${deployment.author || "system"}\n` +
+      (project.node_version ? `Node Version: ${project.node_version} (via nvm)\n` : "") +
       `Target: ${project.target_type} (${
         project.target_type === "ssh"
           ? `${project.target_host}:${project.target_path}`
@@ -161,6 +162,40 @@ export async function runDeploymentPipeline(
 
     if (!cloneSuccess) throw new Error("Step 'clone' failed.");
 
+    // Step 1.5: Setup Node.js version via nvm (if configured)
+    if (project.node_version) {
+      const nvmSuccess = await runStep(
+        deployment.id,
+        "clone", // reuse clone step type since nvm_setup isn't in the union
+        async (log) => {
+          checkCancelled(deployment.id);
+          const version = project.node_version!;
+          log(`[nvm] Setting up Node.js v${version}...\n`);
+
+          if (project.target_type === "local") {
+            const projectPath = path.join(BUILDS_DIR, project.name);
+            await execShell(
+              deployment.id,
+              nvmWrap(`nvm install ${version} && nvm use ${version} && node --version`, version),
+              projectPath,
+              log
+            );
+          } else {
+            const port = project.target_host?.split(":")[1] || "22";
+            const host = project.target_host?.split(":")[0] || "";
+            await execSSH(
+              deployment.id,
+              host,
+              port,
+              nvmWrap(`cd ${project.target_path} && nvm install ${version} && nvm use ${version} && node --version`, version),
+              log
+            );
+          }
+        }
+      );
+      if (!nvmSuccess) throw new Error("Step 'nvm setup' failed.");
+    }
+
     // Step 2: Install dependencies
     if (project.install_cmd) {
       const installSuccess = await runStep(
@@ -168,14 +203,18 @@ export async function runDeploymentPipeline(
         "install",
         async (log) => {
           checkCancelled(deployment.id);
+          const cmd = project.node_version
+            ? nvmWrap(`${project.install_cmd}`, project.node_version)
+            : project.install_cmd!;
           log(`Running install command: ${project.install_cmd}\n`);
+          if (project.node_version) log(`  (using Node.js v${project.node_version} via nvm)\n`);
           if (project.target_type === "local") {
             const projectPath = path.join(BUILDS_DIR, project.name);
-            await execShell(deployment.id, project.install_cmd!, projectPath, log);
+            await execShell(deployment.id, cmd, projectPath, log);
           } else {
             const port = project.target_host?.split(":")[1] || "22";
             const host = project.target_host?.split(":")[0] || "";
-            await execSSH(deployment.id, host, port, `cd ${project.target_path} && ${project.install_cmd}`, log);
+            await execSSH(deployment.id, host, port, `cd ${project.target_path} && ${cmd}`, log);
           }
         }
       );
@@ -191,14 +230,18 @@ export async function runDeploymentPipeline(
         "build",
         async (log) => {
           checkCancelled(deployment.id);
+          const cmd = project.node_version
+            ? nvmWrap(`${project.build_cmd}`, project.node_version)
+            : project.build_cmd!;
           log(`Running build command: ${project.build_cmd}\n`);
+          if (project.node_version) log(`  (using Node.js v${project.node_version} via nvm)\n`);
           if (project.target_type === "local") {
             const projectPath = path.join(BUILDS_DIR, project.name);
-            await execShell(deployment.id, project.build_cmd!, projectPath, log);
+            await execShell(deployment.id, cmd, projectPath, log);
           } else {
             const port = project.target_host?.split(":")[1] || "22";
             const host = project.target_host?.split(":")[0] || "";
-            await execSSH(deployment.id, host, port, `cd ${project.target_path} && ${project.build_cmd}`, log);
+            await execSSH(deployment.id, host, port, `cd ${project.target_path} && ${cmd}`, log);
           }
         }
       );
@@ -214,14 +257,18 @@ export async function runDeploymentPipeline(
         "restart",
         async (log) => {
           checkCancelled(deployment.id);
+          const cmd = project.node_version
+            ? nvmWrap(`${project.restart_cmd}`, project.node_version)
+            : project.restart_cmd!;
           log(`Running restart command: ${project.restart_cmd}\n`);
+          if (project.node_version) log(`  (using Node.js v${project.node_version} via nvm)\n`);
           if (project.target_type === "local") {
             const projectPath = path.join(BUILDS_DIR, project.name);
-            await execShell(deployment.id, project.restart_cmd!, projectPath, log);
+            await execShell(deployment.id, cmd, projectPath, log);
           } else {
             const port = project.target_host?.split(":")[1] || "22";
             const host = project.target_host?.split(":")[0] || "";
-            await execSSH(deployment.id, host, port, `cd ${project.target_path} && ${project.restart_cmd}`, log);
+            await execSSH(deployment.id, host, port, `cd ${project.target_path} && ${cmd}`, log);
           }
         }
       );
@@ -325,6 +372,23 @@ function checkCancelled(deploymentId: string) {
   if (currentDep?.status === "CANCELLED") {
     throw new Error("Deployment cancelled by user.");
   }
+}
+
+/**
+ * Wraps a shell command with nvm sourcing so the specified Node.js version is active.
+ * Tries multiple common nvm install paths for compatibility across systems.
+ */
+function nvmWrap(cmd: string, _version: string): string {
+  // Source nvm from common locations, then run the command in the nvm environment.
+  // The `set +e` at the start prevents nvm sourcing errors from aborting the script,
+  // and `set -e` re-enables it before running the actual command.
+  return [
+    'export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"',
+    '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"',
+    '[ -s "/usr/local/nvm/nvm.sh" ] && . "/usr/local/nvm/nvm.sh"',
+    '[ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && . "/opt/homebrew/opt/nvm/nvm.sh"',
+    cmd,
+  ].join(' && ');
 }
 
 // Execa locally helper

@@ -10,6 +10,7 @@ export interface Project {
   target_type: "ssh" | "local";
   target_host?: string;
   target_path: string;
+  node_version?: string;
   install_cmd?: string;
   build_cmd?: string;
   restart_cmd?: string;

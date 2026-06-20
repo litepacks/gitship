@@ -25,6 +25,7 @@ export const HealthCheckSchema = z.object({
 });
 
 export const DeploySchema = z.object({
+  node_version: z.string().optional(),
   install: z.string().optional(),
   build: z.string().optional(),
   restart: z.string().optional(),
