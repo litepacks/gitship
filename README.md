@@ -18,13 +18,13 @@ graph TD
     end
 
     subgraph Client Machine
-        CLI[deploykit CLI]
+        CLI[gitship CLI (deploykit)]
         YML[deploykit.yml]
     end
 
     subgraph Server Agent Host
-        Agent[deploykit-agent]
-        Core[deploykit-core]
+        Agent[gitship-agent]
+        Core[gitship-core]
         DB[(deploykit.db SQLite)]
         Builds[Build Folder]
         Target[Deployment Target / SSH]
@@ -46,10 +46,10 @@ graph TD
 
 ## 📦 Packages
 
-* **`packages/shared`**: Contains type definitions, schema validations via **Zod**, and YAML config reading/writing helper utilities.
-* **`packages/core`**: The heart of the platform. Holds the **SQLite** repository operations, local storage configurations, GitHub webhook manager, execution engine (supporting local and remote SSH commands via **Execa**), and the FIFO deployment queue.
-* **`packages/server-agent`**: A standalone HTTP webhook server daemon (Express) that accepts push events from GitHub, verifies payload signatures using timing-safe **HMAC SHA-256**, and triggers core pipelines.
-* **`packages/cli`**: The command-line utility built with **Commander.js**, **Inquirer**, and **Ora**, offering an interactive initialization flow, stats tracker, real-time log tailing, and rollback utilities.
+* **`gitship-shared` (`packages/shared`)**: Contains type definitions, schema validations via **Zod**, and YAML config reading/writing helper utilities.
+* **`gitship-core` (`packages/core`)**: The heart of the platform. Holds the **SQLite** repository operations, local storage configurations, GitHub webhook manager, execution engine (supporting local and remote SSH commands via **Execa**), and the FIFO deployment queue.
+* **`gitship-agent` (`packages/server-agent`)**: A standalone HTTP webhook server daemon (Express) that accepts push events from GitHub, verifies payload signatures using timing-safe **HMAC SHA-256**, and triggers core pipelines.
+* **`gitship-cli` (`packages/cli`)**: The command-line utility built with **Commander.js**, **Inquirer**, and **Ora**, offering an interactive initialization flow, stats tracker, real-time log tailing, and rollback utilities.
 
 ---
 

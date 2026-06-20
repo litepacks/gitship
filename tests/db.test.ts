@@ -23,7 +23,7 @@ import {
   recordWebhookDelivery,
 } from "../packages/core/src/db.js";
 import { DEPLOYKIT_DIR } from "../packages/core/src/paths.js";
-import { Project, Deployment, Webhook, DeploymentStep } from "@gitship/shared";
+import { Project, Deployment, Webhook, DeploymentStep } from "gitship-shared";
 
 describe("SQLite Database Operations", () => {
   afterAll(() => {

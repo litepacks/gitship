@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid";
-import { Deployment, DeploymentStatus } from "@gitship/shared";
+import { Deployment, DeploymentStatus } from "gitship-shared";
 import {
   createDeployment,
   getProject,

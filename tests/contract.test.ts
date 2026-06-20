@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { parseProjectConfig } from "../packages/shared/src/config.schema.js";
-import { Project, Webhook, Deployment, DeploymentStep } from "@gitship/shared";
+import { Project, Webhook, Deployment, DeploymentStep } from "gitship-shared";
 
 describe("Interface and Schema Contract Verification", () => {
   

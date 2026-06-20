@@ -11,7 +11,7 @@ import {
   ProjectConfig,
   Project,
   Webhook,
-} from "@gitship/shared";
+} from "gitship-shared";
 import http from "http";
 import {
   readAuthConfig,
@@ -31,8 +31,8 @@ import {
   enqueueDeployment,
   cancelDeployment,
   CONFIG_PATH,
-} from "@gitship/core";
-import { validateToken, listRepositories, listBranches, setupWebhook, openBrowser } from "@gitship/core";
+} from "gitship-core";
+import { validateToken, listRepositories, listBranches, setupWebhook, openBrowser } from "gitship-core";
 
 const program = new Command();
 program
@@ -443,7 +443,7 @@ program
       };
 
       // Write yaml file
-      const { stringifyProjectConfig } = await import("@gitship/shared");
+      const { stringifyProjectConfig } = await import("gitship-shared");
       const yamlStr = stringifyProjectConfig(config);
       const configFilePath = path.join(process.cwd(), "deploykit.yml");
       

@@ -8,7 +8,7 @@ import {
   DeploymentStep,
   StepStatus,
   DeploymentStatus,
-} from "@gitship/shared";
+} from "gitship-shared";
 import {
   updateDeploymentStatus,
   createDeploymentStep,
