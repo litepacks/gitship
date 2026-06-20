@@ -167,11 +167,43 @@ program
 
       if (method === "browser") {
         console.log(chalk.cyan("\nDeployKit self-hosted Browser OAuth login flow."));
-        console.log(`Please ensure you have a GitHub OAuth App registered:`);
+
+        let redirectHost = "localhost";
+        const isSSH = !!(process.env.SSH_CLIENT || process.env.SSH_CONNECTION || process.env.SSH_TTY);
+
+        if (isSSH) {
+          console.log(chalk.yellow(`\n⚠️  SSH Session Detected! Since you are running this CLI on a remote server/VPS, standard localhost browser redirects will not work directly.`));
+          
+          const { connectionType } = await inquirer.prompt([
+            {
+              type: "list",
+              name: "connectionType",
+              message: "How would you like to handle the browser callback?",
+              choices: [
+                { name: "Using SSH Port Forwarding (Recommended: forwards port 4567 to your local machine)", value: "forward" },
+                { name: "Using VPS Public IP / Domain directly (Requires port 4567 to be open on VPS)", value: "public" }
+              ]
+            }
+          ]);
+
+          if (connectionType === "public") {
+            const { vpsHost } = await inquirer.prompt([
+              {
+                type: "input",
+                name: "vpsHost",
+                message: "Enter your VPS public IP address or Domain:",
+                validate: (input) => (input.trim() ? true : "VPS host/domain is required")
+              }
+            ]);
+            redirectHost = vpsHost.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
+          }
+        }
+
+        console.log(`\nPlease ensure you have a GitHub OAuth App registered:`);
         console.log(`1. Go to: ${chalk.bold("https://github.com/settings/developers")}`);
         console.log(`2. Register a new OAuth application.`);
-        console.log(`3. Set ${chalk.bold("Homepage URL")} to: ${chalk.underline("http://localhost:4567")}`);
-        console.log(`4. Set ${chalk.bold("Authorization callback URL")} to: ${chalk.underline("http://localhost:4567/callback")}\n`);
+        console.log(`3. Set ${chalk.bold("Homepage URL")} to: ${chalk.underline(`http://${redirectHost}:4567`)}`);
+        console.log(`4. Set ${chalk.bold("Authorization callback URL")} to: ${chalk.underline(`http://${redirectHost}:4567/callback`)}\n`);
 
         const credentials = await inquirer.prompt([
           {
@@ -192,14 +224,20 @@ program
         ]);
 
         const port = 4567;
-        const authorizeUrl = `https://github.com/login/oauth/authorize?client_id=${credentials.clientId}&redirect_uri=http://localhost:${port}/callback&scope=repo,admin:repo_hook`;
+        const authorizeUrl = `https://github.com/login/oauth/authorize?client_id=${credentials.clientId}&redirect_uri=http://${redirectHost}:${port}/callback&scope=repo,admin:repo_hook`;
 
         const serverPromise = startCallbackServer(credentials.clientId, credentials.clientSecret, port);
 
         console.log(chalk.cyan(`\nOpening browser for GitHub authorization...`));
-        await openBrowser(authorizeUrl);
+        if (!isSSH) {
+          await openBrowser(authorizeUrl).catch(() => {});
+        } else {
+          console.log(chalk.green(`Please open the following URL in your local browser to authorize:\n`));
+          console.log(chalk.underline.bold(authorizeUrl));
+          console.log();
+        }
 
-        const spinner = ora("Waiting for redirection on localhost:4567...").start();
+        const spinner = ora(`Waiting for redirection on ${redirectHost}:${port}...`).start();
 
         try {
           const token = await serverPromise;

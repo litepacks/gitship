@@ -116,6 +116,27 @@ Currently, tests achieve **100% statement and line coverage** on configuration p
 
 ---
 
+## ☁️ VPS Setup & Production Guide
+
+When deploying DeployKit onto a Virtual Private Server (VPS), consider the following guidelines:
+
+### 1. Using IP Addresses vs. Domain Names
+- **Server Agent (Webhooks)**: You can use a raw IP address (e.g., `http://192.0.2.1:3000`) for your Server Agent. GitHub webhooks work perfectly with IP addresses.
+- **SSL/HTTPS**: If you want secure, encrypted webhooks (using `https://`), you should configure a domain name for your VPS (e.g. `agent.mydomain.com`) and configure an SSL certificate (e.g. via Let's Encrypt / Certbot with Nginx).
+
+### 2. GitHub OAuth Authentication on a VPS
+When running `deploykit auth github` to authenticate the CLI:
+- **On Local Machine**: Standard Browser Redirect OAuth is recommended, using `http://localhost:4567` as the GitHub OAuth App callback.
+- **Directly on the VPS (over SSH)**: 
+  - **Option A (Personal Access Token)**: Select the **Personal Access Token (Manual)** authentication choice. This is the simplest option when running directly on a remote server as it doesn't require browser redirections.
+  - **Option B (SSH Port Forwarding)**: If you still want to use Browser OAuth, you can connect to your VPS with SSH port forwarding:
+    ```bash
+    ssh -L 4567:localhost:4567 user@your-vps-ip
+    ```
+    Then, running `deploykit auth github` on the VPS will forward the authentication code back to your local browser successfully.
+
+---
+
 ## 🚀 Monorepo Management & Maintenance
 
 ### Auditing Dependencies
