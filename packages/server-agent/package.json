@@ -1,5 +1,5 @@
 {
-  "name": "@deploykit/agent",
+  "name": "@gitship/agent",
   "version": "1.0.0",
   "type": "module",
   "main": "./dist/server.js",
@@ -9,8 +9,8 @@
     "test": "echo \"No tests for agent\""
   },
   "dependencies": {
-    "@deploykit/core": "*",
-    "@deploykit/shared": "*",
+    "@gitship/core": "*",
+    "@gitship/shared": "*",
     "express": "^4.19.2"
   },
   "devDependencies": {

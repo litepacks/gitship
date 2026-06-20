@@ -6,7 +6,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build -w @deploykit/shared && npm run build -w @deploykit/core && npm run build -w @deploykit/agent && npm run build -w @deploykit/cli",
+    "build": "npm run build -w @gitship/shared && npm run build -w @gitship/core && npm run build -w @gitship/agent && npm run build -w @gitship/cli",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
     "audit": "npm audit --workspaces",

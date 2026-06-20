@@ -5,7 +5,7 @@ import {
   enqueueDeployment,
   isWebhookDeliveryProcessed,
   recordWebhookDelivery,
-} from "@deploykit/core";
+} from "@gitship/core";
 
 const app = express();
 const PORT = process.env.PORT || 3000;

@@ -1,5 +1,5 @@
 {
-  "name": "@deploykit/core",
+  "name": "@gitship/core",
   "version": "1.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -9,7 +9,7 @@
     "test": "echo \"No tests for core\""
   },
   "dependencies": {
-    "@deploykit/shared": "*",
+    "@gitship/shared": "*",
     "better-sqlite3": "^11.0.0",
     "execa": "^9.2.0",
     "nanoid": "^5.0.7",

@@ -9,7 +9,7 @@ import {
   DeploymentLog,
   DeploymentStatus,
   StepStatus,
-} from "@deploykit/shared";
+} from "@gitship/shared";
 
 let dbInstance: Database.Database | null = null;
 

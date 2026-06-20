@@ -1,5 +1,5 @@
 {
-  "name": "@deploykit/cli",
+  "name": "@gitship/cli",
   "version": "1.0.0",
   "type": "module",
   "bin": {
@@ -10,8 +10,8 @@
     "test": "echo \"No tests for cli\""
   },
   "dependencies": {
-    "@deploykit/core": "*",
-    "@deploykit/shared": "*",
+    "@gitship/core": "*",
+    "@gitship/shared": "*",
     "chalk": "^5.3.0",
     "commander": "^12.1.0",
     "inquirer": "^9.2.22",
