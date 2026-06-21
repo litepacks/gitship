@@ -2,6 +2,11 @@
   "name": "gitship-monorepo",
   "version": "0.0.1",
   "private": true,
+  "homepage": "https://litepacks.github.io/gitship/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/litepacks/gitship.git"
+  },
   "description": "Lightweight GitHub-driven deployment toolkit",
   "workspaces": [
     "packages/*"

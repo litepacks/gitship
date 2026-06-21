@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="description" content="GitShip — lightweight alternative to n8n/Coolify focused only on GitHub-driven deployments. Single-page reference." />
+  <title>GitShip — documentation</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/typescript.min.js"></script>
+  
+  <style>
+    html { scroll-behavior: smooth; }
+    pre { tab-size: 2; margin: 0; }
+    pre code { padding: 0; background: transparent; }
+    code { font-family: "JetBrains Mono", monospace; font-size: 0.9em; }
+    .doc-section { scroll-margin-top: 2rem; }
+    table { border-collapse: collapse; }
+    th, td { border: 1px solid #e2e8f0; padding: 0.75rem 1rem; text-align: left; }
+    th { background: #f8fafc; font-weight: 600; }
+    .dark th, .dark td { border-color: #334155; }
+    .dark th { background: #1e293b; }
+    .ascii { font-family: "JetBrains Mono", monospace; font-size: 0.68rem; line-height: 1.4; overflow-x: auto; }
+    @media (min-width: 640px) { .ascii { font-size: 0.72rem; } }
+    @media (min-width: 1024px) { .ascii { font-size: 0.75rem; } }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200">
+  <div class="max-w-5xl mx-auto px-6 py-12">
+    <!-- Header Controls -->
+    <div class="flex items-center justify-between mb-10 gap-4 flex-wrap">
+      <nav class="flex flex-wrap gap-x-4 gap-y-2 text-sm font-medium leading-snug" aria-label="Page sections">
+        <a href="#overview" class="text-slate-500 hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-400 transition-colors">Overview</a>
+        <a href="#features" class="text-slate-500 hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-400 transition-colors">Features</a>
+        <a href="#installation" class="text-slate-500 hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-400 transition-colors">Install</a>
+        <a href="#quick-start" class="text-slate-500 hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-400 transition-colors">Quick start</a>
+        <a href="#config-reference" class="text-slate-500 hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-400 transition-colors">gitship.yml</a>
+        <a href="#nvm-support" class="text-slate-500 hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-400 transition-colors">NVM</a>
+        <a href="#commands" class="text-slate-500 hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-400 transition-colors">Commands</a>
+        <a href="#database-schema" class="text-slate-500 hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-400 transition-colors">Database</a>
+        <a href="#vps-setup" class="text-slate-500 hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-400 transition-colors">VPS Setup</a>
+        <a href="#development" class="text-slate-500 hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-400 transition-colors">Development</a>
+      </nav>
+      <button id="theme-toggle" type="button" class="p-2 rounded-xl text-slate-500 hover:bg-slate-200 hover:text-sky-700 dark:hover:bg-slate-800 dark:text-slate-400 dark:hover:text-sky-300 shrink-0 transition-all duration-200" aria-label="Toggle dark mode">
+        <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        <svg class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+      </button>
+    </div>
+
+    <!-- Header Section -->
+    <header class="mb-14 flex items-start gap-6">
+      <div class="flex-shrink-0 w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500/20 via-sky-500/10 to-slate-800/20 dark:from-sky-400/20 dark:via-blue-500/10 dark:to-slate-900/40 border border-sky-500/35 dark:border-sky-500/25 flex items-center justify-center shadow-lg shadow-sky-900/5 dark:shadow-sky-900/20" aria-hidden="true">
+        <svg class="w-12 h-12 text-sky-700 dark:text-sky-400" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M12 3v14M8 7l4-4 4 4M4 17h16c-1 3-5 4-8 4s-7-1-8-4z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 9h4l-4-4v4z" fill="currentColor" opacity="0.25"/>
+        </svg>
+      </div>
+      <div class="min-w-0">
+        <div class="flex items-center gap-2.5 flex-wrap">
+          <p class="text-xs font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">GitHub-Driven Deployments</p>
+          <span class="px-2 py-0.5 text-[10px] font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-full uppercase tracking-wider">Alpha</span>
+        </div>
+        <h1 class="text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight mt-1">GitShip</h1>
+        <p class="mt-3 text-lg text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl">
+          A lightweight, self-hosted deployment toolkit designed to sync local project settings, register GitHub webhooks on-the-fly, and deploy repositories on push events.
+        </p>
+        <p class="mt-2 text-sm text-slate-500 dark:text-slate-500">
+          Continuous Integration/Deployment without complex dashboards or cloud platforms. Targets <strong class="text-slate-700 dark:text-slate-400">Node.js 22+</strong>.
+        </p>
+      </div>
+    </header>
+
+    <!-- Overview Section -->
+    <section id="overview" class="doc-section mb-14">
+      <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-4">Why GitShip?</h2>
+      <p class="text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
+        Platforms like n8n or Coolify offer great self-hosted control, but they often come with heavy visual dashboard footprints and setup complexity. GitShip is a CLI-first alternative built specifically for developers who want a <strong>GitOps flow</strong> with zero bloat: configure a single <code>gitship.yml</code> file, run `sync`, and let GitShip manage hook lifecycles and build logs automatically.
+      </p>
+      <div class="grid sm:grid-cols-2 gap-4 text-sm mt-6">
+        <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/30 p-5 shadow-sm">
+          <h3 class="font-bold text-slate-800 dark:text-slate-200 mb-2">Ideal when...</h3>
+          <ul class="list-disc pl-4 text-slate-600 dark:text-slate-400 space-y-1.5">
+            <li>You want simple deployments triggered by a Git push</li>
+            <li>You prefer configuration-as-code (committed directly to the repo)</li>
+            <li>You deploy on a VPS, local server, or remote instances via SSH</li>
+            <li>You need clean real-time logs directly in your shell</li>
+          </ul>
+        </div>
+        <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/30 p-5 shadow-sm">
+          <h3 class="font-bold text-slate-800 dark:text-slate-200 mb-2">Architectural Highlights</h3>
+          <ul class="list-disc pl-4 text-slate-600 dark:text-slate-400 space-y-1.5">
+            <li>Timing-safe webhook signature validations (HMAC SHA-256)</li>
+            <li>FIFO deployment queue with process monitoring & cancellation</li>
+            <li>Automatic Node version management wrapping via NVM</li>
+            <li>Zero external databases required — stores state in a local JSON file</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="doc-section mb-14">
+      <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-4">Features</h2>
+      <div class="grid sm:grid-cols-3 gap-4">
+        <div class="border border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-900/10 rounded-xl p-5">
+          <h3 class="font-bold text-slate-800 dark:text-slate-200 mb-1">🔒 Secure Webhooks</h3>
+          <p class="text-xs text-slate-600 dark:text-slate-400">Timing-safe signature verification protects your server endpoint against unauthorized payload executions.</p>
+        </div>
+        <div class="border border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-900/10 rounded-xl p-5">
+          <h3 class="font-bold text-slate-800 dark:text-slate-200 mb-1">🚂 FIFO Queue</h3>
+          <p class="text-xs text-slate-600 dark:text-slate-400">Queued deployment runs process in order, preventing concurrency resource locks or duplicate operations.</p>
+        </div>
+        <div class="border border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-900/10 rounded-xl p-5">
+          <h3 class="font-bold text-slate-800 dark:text-slate-200 mb-1">🔗 SSH Daemons</h3>
+          <p class="text-xs text-slate-600 dark:text-slate-400">Target local environments or execute pipeline operations on remote hosts securely using SSH commands.</p>
+        </div>
+        <div class="border border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-900/10 rounded-xl p-5">
+          <h3 class="font-bold text-slate-800 dark:text-slate-200 mb-1">⏳ Rollbacks</h3>
+          <p class="text-xs text-slate-600 dark:text-slate-400">Easily roll back deployments to any past successful commit hash with a single command.</p>
+        </div>
+        <div class="border border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-900/10 rounded-xl p-5">
+          <h3 class="font-bold text-slate-800 dark:text-slate-200 mb-1">📦 NVM Integration</h3>
+          <p class="text-xs text-slate-600 dark:text-slate-400">Declare project-level Node.js versions in config and let GitShip handle installations on demand.</p>
+        </div>
+        <div class="border border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-900/10 rounded-xl p-5">
+          <h3 class="font-bold text-slate-800 dark:text-slate-200 mb-1">🩺 Health Checks</h3>
+          <p class="text-xs text-slate-600 dark:text-slate-400">Define test endpoints to verify deployment stability and health automatically upon restart.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Installation Section -->
+    <section id="installation" class="doc-section mb-14">
+      <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-4">Installation</h2>
+      <p class="text-slate-600 dark:text-slate-400 mb-4">Install the global GitShip CLI binary on your terminal host. Make sure Node.js v22+ is active.</p>
+      <pre class="bg-slate-900 p-5 rounded-xl text-sm overflow-x-auto"><code class="language-bash">npm install -g gitship-cli</code></pre>
+    </section>
+
+    <!-- Quick Start Section -->
+    <section id="quick-start" class="doc-section mb-14">
+      <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-4">Quick Start</h2>
+      <div class="space-y-6">
+        <div>
+          <h3 class="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">1. Authenticate with GitHub</h3>
+          <p class="text-sm text-slate-600 dark:text-slate-400 mb-3">Authenticates your CLI, using standard browser redirects or manually inputting a personal access token.</p>
+          <pre class="bg-slate-900 p-5 rounded-xl text-sm overflow-x-auto"><code class="language-bash">gitship auth github</code></pre>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">2. Initialize a Project</h3>
+          <p class="text-sm text-slate-600 dark:text-slate-400 mb-3">Detects the current project type (PM2, Docker, Node) and prompts for targets to generate your <code>gitship.yml</code> template.</p>
+          <pre class="bg-slate-900 p-5 rounded-xl text-sm overflow-x-auto"><code class="language-bash">gitship init</code></pre>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">3. Sync Configuration and Setup Webhook</h3>
+          <p class="text-sm text-slate-600 dark:text-slate-400 mb-3">Validates configuration schemas, creates the local project database records, generates timing secrets, and updates webhook settings on GitHub automatically.</p>
+          <pre class="bg-slate-900 p-5 rounded-xl text-sm overflow-x-auto"><code class="language-bash">gitship sync</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Configuration Schema Section -->
+    <section id="config-reference" class="doc-section mb-14">
+      <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-4">Configuration Reference — <code>gitship.yml</code></h2>
+      <p class="text-slate-600 dark:text-slate-400 mb-4">Here is a complete schema configuration reference for the <code>gitship.yml</code> file:</p>
+      
+      <pre class="bg-slate-900 p-5 rounded-xl text-sm overflow-x-auto"><code class="language-yaml"># Unique identifier name for the project
+project: landing-page
+
+# Repository reference coordinates
+repository:
+  owner: my-organization
+  repo: primary-site
+  branch: main
+
+# Deployment destination target parameters
+target:
+  type: ssh                  # 'ssh' or 'local'
+  host: 192.168.1.10:2222    # (Required for ssh) format IP:Port or host:port
+  path: /var/www/landing     # Destination target deployment directory path
+
+# Deployment commands & steps configuration
+deploy:
+  node_version: "22.2.0"     # Optional: wraps commands using specific node version (via nvm)
+  install: npm ci            # Dependency install command
+  build: npm run build       # Build project command
+  restart: pm2 restart all   # Post-deployment restart command
+  
+  # Health checks configuration (Optional)
+  healthcheck:
+    path: /health            # Query endpoint (default: '/')
+    port: 3000               # Port to check
+    retries: 5               # Max check retries (default: 5)
+    interval_ms: 1000        # Interval between checks (default: 1000)
+    timeout_ms: 2000         # Single check request timeout (default: 2000)
+
+# Build metrics logging options (Optional)
+logging:
+  enabled: true              # Persist run stdout/stderr logs in database (default: true)</code></pre>
+    </section>
+
+    <!-- NVM Support Section -->
+    <section id="nvm-support" class="doc-section mb-14">
+      <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-4">Node Version Management (NVM)</h2>
+      <p class="text-slate-600 dark:text-slate-400 mb-4">
+        GitShip supports project-level Node.js isolation via <strong>NVM (Node Version Manager)</strong>. The tool automatically detects local NVM configurations and wraps build scripts.
+      </p>
+
+      <h3 class="text-lg font-bold text-slate-800 dark:text-slate-200 mb-3">1. Developer Workspace Setup</h3>
+      <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">
+        To configure your local workspace node environments, a <code>.nvmrc</code> is provided in the repository root. Run the following:
+      </p>
+      <pre class="bg-slate-900 p-5 rounded-xl text-sm overflow-x-auto mb-6"><code class="language-bash"># Install specified version
+nvm install
+
+# Use project Node version
+nvm use</code></pre>
+
+      <h3 class="text-lg font-bold text-slate-800 dark:text-slate-200 mb-3">2. Execution Wrapping in <code>gitship.yml</code></h3>
+      <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">
+        When the <code>deploy.node_version</code> field is configured in your project's YAML configuration, GitShip ensures isolated execution pipelines:
+      </p>
+      <ul class="list-disc pl-5 text-slate-600 dark:text-slate-400 space-y-2 mb-4 text-sm">
+        <li><strong>Automatic Wrapping</strong>: Commands (`install`, `build`, `restart`) are executed under the declared Node version using environment wrapper scripts.</li>
+        <li><strong>Auto-Installation</strong>: If the target environment (local or SSH VPS host) does not have the specified version installed, GitShip runs <code>nvm install &lt;version&gt;</code> on-the-fly.</li>
+        <li><strong>Discovery Paths</strong>: Auto-detects NVM install scripts inside <code>~/.nvm</code>, <code>/usr/local/nvm</code>, and Homebrew paths.</li>
+      </ul>
+    </section>
+
+    <!-- Commands Section -->
+    <section id="commands" class="doc-section mb-14">
+      <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-4">CLI Command References</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr>
+              <th class="w-1/3">Command</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody class="text-slate-600 dark:text-slate-400">
+            <tr>
+              <td><code>gitship auth github</code></td>
+              <td>Authenticate with GitHub via browser OAuth redirect or personal token.</td>
+            </tr>
+            <tr>
+              <td><code>gitship init</code></td>
+              <td>Initialize a new project and create a local <code>gitship.yml</code>.</td>
+            </tr>
+            <tr>
+              <td><code>gitship sync</code></td>
+              <td>Sync local configurations with database records and configure GitHub webhooks.</td>
+            </tr>
+            <tr>
+              <td><code>gitship check</code></td>
+              <td>Check if local configuration, database record, and remote GitHub webhooks are valid.</td>
+            </tr>
+            <tr>
+              <td><code>gitship runs</code></td>
+              <td>List recent deployment runs and statuses.</td>
+            </tr>
+            <tr>
+              <td><code>gitship logs &lt;run-id&gt; [-f]</code></td>
+              <td>Print build output logs for a run. Stream live outputs with <code>--follow</code>.</td>
+            </tr>
+            <tr>
+              <td><code>gitship rollback &lt;run-id&gt;</code></td>
+              <td>Queue a rollback deployment reverting target to the specified commit hash.</td>
+            </tr>
+            <tr>
+              <td><code>gitship stats</code></td>
+              <td>Show project metrics, average build times, and success rates.</td>
+            </tr>
+            <tr>
+              <td><code>gitship queue</code></td>
+              <td>Display currently active or queued deployment runs.</td>
+            </tr>
+            <tr>
+              <td><code>gitship cancel &lt;run-id&gt;</code></td>
+              <td>Cancel a pending run in the queue or terminate active processes.</td>
+            </tr>
+            <tr>
+              <td><code>gitship project inspect &lt;name&gt;</code></td>
+              <td>Inspect configuration details and status for a registered project.</td>
+            </tr>
+            <tr>
+              <td><code>gitship repos</code></td>
+              <td>List all repositories in the connected GitHub account.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Database Schema Section -->
+    <section id="database-schema" class="doc-section mb-14">
+      <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-4">Database Schema</h2>
+      <p class="text-slate-600 dark:text-slate-400 mb-4">
+        GitShip maintains states locally in `~/.gitship/gitship.json`. The JSON file is divided into five core collections:
+      </p>
+      
+      <div class="space-y-4">
+        <div class="border border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-900/10 rounded-xl p-4">
+          <h4 class="font-semibold text-sm text-slate-800 dark:text-slate-200">📂 <code>projects</code></h4>
+          <p class="text-xs text-slate-500 mt-1">Contains active project properties, target specifications (local/SSH paths), repository mappings, and webhook secrets used to sign payload deliveries.</p>
+        </div>
+        <div class="border border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-900/10 rounded-xl p-4">
+          <h4 class="font-semibold text-sm text-slate-800 dark:text-slate-200">🔗 <code>webhooks</code></h4>
+          <p class="text-xs text-slate-500 mt-1">Saves webhook metadata, active state flags, delivery secret values, and the remote ID returned by the GitHub Hooks API.</p>
+        </div>
+        <div class="border border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-900/10 rounded-xl p-4">
+          <h4 class="font-semibold text-sm text-slate-800 dark:text-slate-200">🏁 <code>deployments</code></h4>
+          <p class="text-xs text-slate-500 mt-1">Tracks overall statuses (<code>QUEUED</code>, <code>RUNNING</code>, <code>SUCCESS</code>, <code>FAILED</code>, <code>CANCELLED</code>), commit SHA hashes, trigger author tags, and total time elapsed in milliseconds.</p>
+        </div>
+        <div class="border border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-900/10 rounded-xl p-4">
+          <h4 class="font-semibold text-sm text-slate-800 dark:text-slate-200">📊 <code>deployment_steps</code></h4>
+          <p class="text-xs text-slate-500 mt-1">Holds timing performance data, statuses, and exceptions for specific deployment pipeline steps (<code>clone</code>, <code>install</code>, <code>build</code>, <code>restart</code>, <code>healthcheck</code>).</p>
+        </div>
+        <div class="border border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-900/10 rounded-xl p-4">
+          <h4 class="font-semibold text-sm text-slate-800 dark:text-slate-200">📝 <code>deployment_logs</code></h4>
+          <p class="text-xs text-slate-500 mt-1">Full terminal execution outputs containing combined stdout and stderr recordings generated during build executions.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- VPS Setup Section -->
+    <section id="vps-setup" class="doc-section mb-14">
+      <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-4">VPS Setup &amp; Production Guide</h2>
+      <p class="text-slate-600 dark:text-slate-400 mb-6">
+        When deploying GitShip to a production Virtual Private Server (VPS), coordinate your environment architecture according to these guidelines.
+      </p>
+
+      <div class="space-y-6">
+        <div>
+          <h3 class="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">1. Local vs VPS Synchronization</h3>
+          <p class="text-sm text-slate-600 dark:text-slate-400 mb-3">
+            Since GitShip stores project states locally under <code>~/.gitship/gitship.json</code>, the Server Agent on the VPS needs access to the configuration records.
+          </p>
+          <div class="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 text-sm text-amber-800 dark:text-amber-300">
+            <strong class="font-bold">⚠️ Coordination Requirement</strong>: Webhooks point to the VPS Server Agent. If you run <code>gitship sync</code> locally on your developer machine, the local database gets populated, but the VPS database won't contain the record, causing incoming webhooks to fail with a project mismatch error.
+          </div>
+          <p class="text-sm text-slate-600 dark:text-slate-400 mt-3">
+            To synchronize, choose one of the following methods:
+          </p>
+          <ul class="list-decimal pl-5 text-slate-600 dark:text-slate-400 space-y-1.5 mt-2 text-sm">
+            <li><strong>Method A (Recommended)</strong>: Run <code>gitship init</code> locally to generate <code>gitship.yml</code>, push it to your repository, SSH into the VPS, clone the project, and run <code>gitship sync</code> directly on the VPS.</li>
+            <li><strong>Method B</strong>: Run <code>gitship sync</code> locally pointing the agent URL to your VPS, then manually copy the local <code>~/.gitship/gitship.json</code> file to the VPS configuration directory.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">2. Running Server Agent continuously via PM2</h3>
+          <p class="text-sm text-slate-600 dark:text-slate-400 mb-3">Keep the webhook server agent running continuously in the background on your VPS using PM2:</p>
+          <pre class="bg-slate-900 p-5 rounded-xl text-sm overflow-x-auto"><code class="language-bash"># Start the Server Agent daemon
+pm2 start "gitship agent" --name "gitship-agent"
+
+# Or on a custom port
+pm2 start "gitship agent --port 8080" --name "gitship-agent"
+
+# Setup PM2 daemon to restart on system boot
+pm2 startup
+pm2 save</code></pre>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">3. SSL Certificates &amp; GitHub OAuth</h3>
+          <p class="text-sm text-slate-600 dark:text-slate-400 mb-3">
+            To use secure webhooks (HTTPS callbacks), route the Server Agent port behind a reverse proxy (e.g. Nginx) configured with Let's Encrypt certificates.
+          </p>
+          <p class="text-sm text-slate-600 dark:text-slate-400 mb-3">
+            When authenticating the CLI directly on the VPS via SSH:
+          </p>
+          <ul class="list-disc pl-5 text-slate-600 dark:text-slate-400 space-y-1 text-sm">
+            <li>Select the <strong>Personal Access Token (Manual)</strong> option during auth, or</li>
+            <li>Connect over SSH using port forwarding: <code>ssh -L 4567:localhost:4567 user@your-vps-ip</code> to capture the browser redirect locally.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Architecture Section -->
+    <section id="architecture" class="doc-section mb-14">
+      <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-4">Architecture</h2>
+      <pre class="ascii bg-slate-900 border border-slate-800 text-sky-400 rounded-xl p-5 shadow-inner">
+┌────────────────────┐            Sync Webhook            ┌───────────────┐
+│                    │ ─────────────────────────────────> │               │
+│    GitShip CLI     │                                    │  GitHub Repo  │
+│                    │ <───────────────────────────────── │               │
+└─────────┬──────────┘          Authentication            └───────┬───────┘
+          │                                                       │
+          │ Syncs Config                                          │
+          ▼                                                       │ Trigger Push
+┌────────────────────┐         HMAC POST /webhook         │ Event
+│                    │ <──────────────────────────────────┘
+│    Server Agent    │
+│                    │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐
+└─────────┬──────────┘                     │
+          │                                │ Enqueues
+          │ Triggers pipeline              ▼
+          ▼                      ┌──────────────────┐
+┌────────────────────┐           │                  │
+│    gitship-core    │ ────────> │   gitship.json   │
+│  (Execution Queue) │           │    (Database)    │
+└─────────┬──────────┘           └──────────────────┘
+          │
+          │ Local Shell / SSH Command
+          ▼
+┌────────────────────┐
+│                    │
+│ Deployment Target  │
+│                    │
+└────────────────────┘
+      </pre>
+    </section>
+
+    <!-- Development Section -->
+    <section id="development" class="doc-section mb-14">
+      <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-4">Development &amp; Monorepo Workspace</h2>
+      <p class="text-slate-600 dark:text-slate-400 mb-4">
+        GitShip is structured as an npm workspaces monorepo:
+      </p>
+      
+      <div class="grid sm:grid-cols-2 gap-4 text-sm mb-6">
+        <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+          <strong class="text-slate-800 dark:text-slate-200">packages/shared</strong>
+          <p class="text-xs text-slate-500 mt-1">Shared schema validations (Zod), project types, and yaml config parsers.</p>
+        </div>
+        <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+          <strong class="text-slate-800 dark:text-slate-200">packages/core</strong>
+          <p class="text-xs text-slate-500 mt-1">Database drivers, command execution engines, and FIFO deployment queue controllers.</p>
+        </div>
+        <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+          <strong class="text-slate-800 dark:text-slate-200">packages/server-agent</strong>
+          <p class="text-xs text-slate-500 mt-1">Stand-alone Express webhook receiver verifying hub payload signatures.</p>
+        </div>
+        <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+          <strong class="text-slate-800 dark:text-slate-200">packages/cli</strong>
+          <p class="text-xs text-slate-500 mt-1">Commander.js CLI providing commands for auth, init, runs, stats, and logs.</p>
+        </div>
+      </div>
+
+      <h3 class="text-lg font-bold text-slate-800 dark:text-slate-200 mb-3">Development Commands</h3>
+      <pre class="bg-slate-900 p-5 rounded-xl text-sm overflow-x-auto mb-4"><code class="language-bash"># Run unit tests
+npm test
+
+# Build all workspace packages
+npm run build
+
+# Run security audits
+npm run audit
+
+# Bump workspace package versions
+npm run change patch</code></pre>
+    </section>
+
+    <!-- Footer -->
+    <footer class="pt-10 border-t border-slate-200 dark:border-slate-800 text-sm text-slate-500 dark:text-slate-500">
+      <p><a href="https://github.com/litepacks/gitship" class="text-sky-600 dark:text-sky-400 hover:underline">github.com/litepacks/gitship</a> · MIT License · Currently in active Alpha development.</p>
+    </footer>
+  </div>
+
+  <!-- Script logic for highlight and dark mode toggle -->
+  <script>
+    hljs.highlightAll();
+    (function(){
+      var themeKey = 'gitship-docs-theme';
+      var stored = localStorage.getItem(themeKey);
+      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (stored === 'dark' || (!stored && prefersDark)) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+      document.getElementById('theme-toggle').addEventListener('click', function(){
+        var isDark = document.documentElement.classList.toggle('dark');
+        localStorage.setItem(themeKey, isDark ? 'dark' : 'light');
+      });
+    })();
+  </script>
+</body>
+</html>
